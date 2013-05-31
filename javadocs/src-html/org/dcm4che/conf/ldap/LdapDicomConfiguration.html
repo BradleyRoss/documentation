@@ -1,0 +1,1829 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+<title>Source code</title>
+<link rel="stylesheet" type="text/css" href="../../../../../stylesheet.css" title="Style">
+</head>
+<body>
+<div class="sourceContainer">
+<pre><span class="sourceLineNo">001</span>/* ***** BEGIN LICENSE BLOCK *****<a name="line.1"></a>
+<span class="sourceLineNo">002</span> * Version: MPL 1.1/GPL 2.0/LGPL 2.1<a name="line.2"></a>
+<span class="sourceLineNo">003</span> *<a name="line.3"></a>
+<span class="sourceLineNo">004</span> * The contents of this file are subject to the Mozilla Public License Version<a name="line.4"></a>
+<span class="sourceLineNo">005</span> * 1.1 (the "License"); you may not use this file except in compliance with<a name="line.5"></a>
+<span class="sourceLineNo">006</span> * the License. You may obtain a copy of the License at<a name="line.6"></a>
+<span class="sourceLineNo">007</span> * http://www.mozilla.org/MPL/<a name="line.7"></a>
+<span class="sourceLineNo">008</span> *<a name="line.8"></a>
+<span class="sourceLineNo">009</span> * Software distributed under the License is distributed on an "AS IS" basis,<a name="line.9"></a>
+<span class="sourceLineNo">010</span> * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License<a name="line.10"></a>
+<span class="sourceLineNo">011</span> * for the specific language governing rights and limitations under the<a name="line.11"></a>
+<span class="sourceLineNo">012</span> * License.<a name="line.12"></a>
+<span class="sourceLineNo">013</span> *<a name="line.13"></a>
+<span class="sourceLineNo">014</span> * The Original Code is part of dcm4che, an implementation of DICOM(TM) in<a name="line.14"></a>
+<span class="sourceLineNo">015</span> * Java(TM), hosted at https://github.com/gunterze/dcm4che.<a name="line.15"></a>
+<span class="sourceLineNo">016</span> *<a name="line.16"></a>
+<span class="sourceLineNo">017</span> * The Initial Developer of the Original Code is<a name="line.17"></a>
+<span class="sourceLineNo">018</span> * Agfa Healthcare.<a name="line.18"></a>
+<span class="sourceLineNo">019</span> * Portions created by the Initial Developer are Copyright (C) 2011<a name="line.19"></a>
+<span class="sourceLineNo">020</span> * the Initial Developer. All Rights Reserved.<a name="line.20"></a>
+<span class="sourceLineNo">021</span> *<a name="line.21"></a>
+<span class="sourceLineNo">022</span> * Contributor(s):<a name="line.22"></a>
+<span class="sourceLineNo">023</span> * See @authors listed below<a name="line.23"></a>
+<span class="sourceLineNo">024</span> *<a name="line.24"></a>
+<span class="sourceLineNo">025</span> * Alternatively, the contents of this file may be used under the terms of<a name="line.25"></a>
+<span class="sourceLineNo">026</span> * either the GNU General Public License Version 2 or later (the "GPL"), or<a name="line.26"></a>
+<span class="sourceLineNo">027</span> * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),<a name="line.27"></a>
+<span class="sourceLineNo">028</span> * in which case the provisions of the GPL or the LGPL are applicable instead<a name="line.28"></a>
+<span class="sourceLineNo">029</span> * of those above. If you wish to allow use of your version of this file only<a name="line.29"></a>
+<span class="sourceLineNo">030</span> * under the terms of either the GPL or the LGPL, and not to allow others to<a name="line.30"></a>
+<span class="sourceLineNo">031</span> * use your version of this file under the terms of the MPL, indicate your<a name="line.31"></a>
+<span class="sourceLineNo">032</span> * decision by deleting the provisions above and replace them with the notice<a name="line.32"></a>
+<span class="sourceLineNo">033</span> * and other provisions required by the GPL or the LGPL. If you do not delete<a name="line.33"></a>
+<span class="sourceLineNo">034</span> * the provisions above, a recipient may use your version of this file under<a name="line.34"></a>
+<span class="sourceLineNo">035</span> * the terms of any one of the MPL, the GPL or the LGPL.<a name="line.35"></a>
+<span class="sourceLineNo">036</span> *<a name="line.36"></a>
+<span class="sourceLineNo">037</span> * ***** END LICENSE BLOCK ***** */<a name="line.37"></a>
+<span class="sourceLineNo">038</span><a name="line.38"></a>
+<span class="sourceLineNo">039</span>package org.dcm4che.conf.ldap;<a name="line.39"></a>
+<span class="sourceLineNo">040</span><a name="line.40"></a>
+<span class="sourceLineNo">041</span>import java.io.ByteArrayInputStream;<a name="line.41"></a>
+<span class="sourceLineNo">042</span>import java.security.cert.CertificateEncodingException;<a name="line.42"></a>
+<span class="sourceLineNo">043</span>import java.security.cert.CertificateException;<a name="line.43"></a>
+<span class="sourceLineNo">044</span>import java.security.cert.CertificateFactory;<a name="line.44"></a>
+<span class="sourceLineNo">045</span>import java.security.cert.X509Certificate;<a name="line.45"></a>
+<span class="sourceLineNo">046</span>import java.util.ArrayList;<a name="line.46"></a>
+<span class="sourceLineNo">047</span>import java.util.Arrays;<a name="line.47"></a>
+<span class="sourceLineNo">048</span>import java.util.Collection;<a name="line.48"></a>
+<span class="sourceLineNo">049</span>import java.util.EnumSet;<a name="line.49"></a>
+<span class="sourceLineNo">050</span>import java.util.Hashtable;<a name="line.50"></a>
+<span class="sourceLineNo">051</span>import java.util.List;<a name="line.51"></a>
+<span class="sourceLineNo">052</span><a name="line.52"></a>
+<span class="sourceLineNo">053</span>import javax.naming.Context;<a name="line.53"></a>
+<span class="sourceLineNo">054</span>import javax.naming.NameAlreadyBoundException;<a name="line.54"></a>
+<span class="sourceLineNo">055</span>import javax.naming.NameClassPair;<a name="line.55"></a>
+<span class="sourceLineNo">056</span>import javax.naming.NameNotFoundException;<a name="line.56"></a>
+<span class="sourceLineNo">057</span>import javax.naming.NamingEnumeration;<a name="line.57"></a>
+<span class="sourceLineNo">058</span>import javax.naming.NamingException;<a name="line.58"></a>
+<span class="sourceLineNo">059</span>import javax.naming.directory.Attribute;<a name="line.59"></a>
+<span class="sourceLineNo">060</span>import javax.naming.directory.Attributes;<a name="line.60"></a>
+<span class="sourceLineNo">061</span>import javax.naming.directory.BasicAttribute;<a name="line.61"></a>
+<span class="sourceLineNo">062</span>import javax.naming.directory.BasicAttributes;<a name="line.62"></a>
+<span class="sourceLineNo">063</span>import javax.naming.directory.DirContext;<a name="line.63"></a>
+<span class="sourceLineNo">064</span>import javax.naming.directory.InitialDirContext;<a name="line.64"></a>
+<span class="sourceLineNo">065</span>import javax.naming.directory.ModificationItem;<a name="line.65"></a>
+<span class="sourceLineNo">066</span>import javax.naming.directory.SearchControls;<a name="line.66"></a>
+<span class="sourceLineNo">067</span>import javax.naming.directory.SearchResult;<a name="line.67"></a>
+<span class="sourceLineNo">068</span><a name="line.68"></a>
+<span class="sourceLineNo">069</span>import org.dcm4che.conf.api.AttributeCoercion;<a name="line.69"></a>
+<span class="sourceLineNo">070</span>import org.dcm4che.conf.api.AttributeCoercions;<a name="line.70"></a>
+<span class="sourceLineNo">071</span>import org.dcm4che.conf.api.ConfigurationAlreadyExistsException;<a name="line.71"></a>
+<span class="sourceLineNo">072</span>import org.dcm4che.conf.api.ConfigurationException;<a name="line.72"></a>
+<span class="sourceLineNo">073</span>import org.dcm4che.conf.api.ConfigurationNotFoundException;<a name="line.73"></a>
+<span class="sourceLineNo">074</span>import org.dcm4che.conf.api.DicomConfiguration;<a name="line.74"></a>
+<span class="sourceLineNo">075</span>import org.dcm4che.data.Code;<a name="line.75"></a>
+<span class="sourceLineNo">076</span>import org.dcm4che.data.Issuer;<a name="line.76"></a>
+<span class="sourceLineNo">077</span>import org.dcm4che.net.ApplicationEntity;<a name="line.77"></a>
+<span class="sourceLineNo">078</span>import org.dcm4che.net.Connection;<a name="line.78"></a>
+<span class="sourceLineNo">079</span>import org.dcm4che.net.Device;<a name="line.79"></a>
+<span class="sourceLineNo">080</span>import org.dcm4che.net.DeviceInfo;<a name="line.80"></a>
+<span class="sourceLineNo">081</span>import org.dcm4che.net.Dimse;<a name="line.81"></a>
+<span class="sourceLineNo">082</span>import org.dcm4che.net.QueryOption;<a name="line.82"></a>
+<span class="sourceLineNo">083</span>import org.dcm4che.net.StorageOptions;<a name="line.83"></a>
+<span class="sourceLineNo">084</span>import org.dcm4che.net.TransferCapability;<a name="line.84"></a>
+<span class="sourceLineNo">085</span>import org.dcm4che.net.Connection.Protocol;<a name="line.85"></a>
+<span class="sourceLineNo">086</span>import org.dcm4che.util.StringUtils;<a name="line.86"></a>
+<span class="sourceLineNo">087</span>import org.slf4j.Logger;<a name="line.87"></a>
+<span class="sourceLineNo">088</span>import org.slf4j.LoggerFactory;<a name="line.88"></a>
+<span class="sourceLineNo">089</span><a name="line.89"></a>
+<span class="sourceLineNo">090</span>/**<a name="line.90"></a>
+<span class="sourceLineNo">091</span> * @author Gunter Zeilinger &lt;gunterze@gmail.com&gt;<a name="line.91"></a>
+<span class="sourceLineNo">092</span> *<a name="line.92"></a>
+<span class="sourceLineNo">093</span> */<a name="line.93"></a>
+<span class="sourceLineNo">094</span>public final class LdapDicomConfiguration implements DicomConfiguration {<a name="line.94"></a>
+<span class="sourceLineNo">095</span><a name="line.95"></a>
+<span class="sourceLineNo">096</span>    private static final Logger LOG = LoggerFactory.getLogger(LdapDicomConfiguration.class);<a name="line.96"></a>
+<span class="sourceLineNo">097</span><a name="line.97"></a>
+<span class="sourceLineNo">098</span>    private static final String CN_UNIQUE_AE_TITLES_REGISTRY = "cn=Unique AE Titles Registry,";<a name="line.98"></a>
+<span class="sourceLineNo">099</span>    private static final String CN_DEVICES = "cn=Devices,";<a name="line.99"></a>
+<span class="sourceLineNo">100</span>    private static final String DICOM_CONFIGURATION = "DICOM Configuration";<a name="line.100"></a>
+<span class="sourceLineNo">101</span>    private static final String DICOM_CONFIGURATION_ROOT = "dicomConfigurationRoot";<a name="line.101"></a>
+<span class="sourceLineNo">102</span>    private static final String PKI_USER = "pkiUser";<a name="line.102"></a>
+<span class="sourceLineNo">103</span>    private static final String USER_CERTIFICATE_BINARY = "userCertificate;binary";<a name="line.103"></a>
+<span class="sourceLineNo">104</span>    private static final X509Certificate[] EMPTY_X509_CERTIFICATES = {};<a name="line.104"></a>
+<span class="sourceLineNo">105</span>    private static final Code[] EMPTY_CODES = {};<a name="line.105"></a>
+<span class="sourceLineNo">106</span><a name="line.106"></a>
+<span class="sourceLineNo">107</span>    private final DirContext ctx;<a name="line.107"></a>
+<span class="sourceLineNo">108</span>    private final String baseDN;<a name="line.108"></a>
+<span class="sourceLineNo">109</span>    private String configurationDN;<a name="line.109"></a>
+<span class="sourceLineNo">110</span>    private String devicesDN;<a name="line.110"></a>
+<span class="sourceLineNo">111</span>    private String aetsRegistryDN;<a name="line.111"></a>
+<span class="sourceLineNo">112</span>    private String configurationCN = DICOM_CONFIGURATION; <a name="line.112"></a>
+<span class="sourceLineNo">113</span>    private String configurationRoot = DICOM_CONFIGURATION_ROOT;<a name="line.113"></a>
+<span class="sourceLineNo">114</span>    private String pkiUser = PKI_USER;<a name="line.114"></a>
+<span class="sourceLineNo">115</span>    private String userCertificate = USER_CERTIFICATE_BINARY;<a name="line.115"></a>
+<span class="sourceLineNo">116</span>    private boolean extended = true;<a name="line.116"></a>
+<span class="sourceLineNo">117</span><a name="line.117"></a>
+<span class="sourceLineNo">118</span>    private final List&lt;LdapDicomConfigurationExtension&gt; extensions =<a name="line.118"></a>
+<span class="sourceLineNo">119</span>            new ArrayList&lt;LdapDicomConfigurationExtension&gt;();<a name="line.119"></a>
+<span class="sourceLineNo">120</span><a name="line.120"></a>
+<span class="sourceLineNo">121</span>    public LdapDicomConfiguration() throws ConfigurationException {<a name="line.121"></a>
+<span class="sourceLineNo">122</span>        this(ResourceManager.getInitialEnvironment());<a name="line.122"></a>
+<span class="sourceLineNo">123</span>    }<a name="line.123"></a>
+<span class="sourceLineNo">124</span><a name="line.124"></a>
+<span class="sourceLineNo">125</span>    @SuppressWarnings("unchecked")<a name="line.125"></a>
+<span class="sourceLineNo">126</span>    public LdapDicomConfiguration(Hashtable&lt;?,?&gt; env)<a name="line.126"></a>
+<span class="sourceLineNo">127</span>            throws ConfigurationException {<a name="line.127"></a>
+<span class="sourceLineNo">128</span>        try {<a name="line.128"></a>
+<span class="sourceLineNo">129</span>            // split baseDN from LDAP URL<a name="line.129"></a>
+<span class="sourceLineNo">130</span>            env = (Hashtable&lt;?,?&gt;) env.clone();<a name="line.130"></a>
+<span class="sourceLineNo">131</span>            String s = (String) env.get(Context.PROVIDER_URL);<a name="line.131"></a>
+<span class="sourceLineNo">132</span>            int end = s.lastIndexOf('/');<a name="line.132"></a>
+<span class="sourceLineNo">133</span>            ((Hashtable&lt;Object,Object&gt;) env)<a name="line.133"></a>
+<span class="sourceLineNo">134</span>                .put(Context.PROVIDER_URL, s.substring(0, end));<a name="line.134"></a>
+<span class="sourceLineNo">135</span>            this.baseDN = s.substring(end+1);<a name="line.135"></a>
+<span class="sourceLineNo">136</span>            this.ctx = new InitialDirContext(env);<a name="line.136"></a>
+<span class="sourceLineNo">137</span>        } catch (Exception e) {<a name="line.137"></a>
+<span class="sourceLineNo">138</span>            throw new ConfigurationException(e);<a name="line.138"></a>
+<span class="sourceLineNo">139</span>        }<a name="line.139"></a>
+<span class="sourceLineNo">140</span>    }<a name="line.140"></a>
+<span class="sourceLineNo">141</span><a name="line.141"></a>
+<span class="sourceLineNo">142</span>    public final boolean isExtended() {<a name="line.142"></a>
+<span class="sourceLineNo">143</span>        return extended;<a name="line.143"></a>
+<span class="sourceLineNo">144</span>    }<a name="line.144"></a>
+<span class="sourceLineNo">145</span><a name="line.145"></a>
+<span class="sourceLineNo">146</span>    public final void setExtended(boolean extended) {<a name="line.146"></a>
+<span class="sourceLineNo">147</span>        this.extended = extended;<a name="line.147"></a>
+<span class="sourceLineNo">148</span>    }<a name="line.148"></a>
+<span class="sourceLineNo">149</span><a name="line.149"></a>
+<span class="sourceLineNo">150</span>    public final void setConfigurationCN(String configurationCN) {<a name="line.150"></a>
+<span class="sourceLineNo">151</span>        this.configurationCN = configurationCN;<a name="line.151"></a>
+<span class="sourceLineNo">152</span>    }<a name="line.152"></a>
+<span class="sourceLineNo">153</span><a name="line.153"></a>
+<span class="sourceLineNo">154</span>    public final String getConfigurationCN() {<a name="line.154"></a>
+<span class="sourceLineNo">155</span>        return configurationCN;<a name="line.155"></a>
+<span class="sourceLineNo">156</span>    }<a name="line.156"></a>
+<span class="sourceLineNo">157</span><a name="line.157"></a>
+<span class="sourceLineNo">158</span>    public final void setConfigurationRoot(String configurationRoot) {<a name="line.158"></a>
+<span class="sourceLineNo">159</span>        this.configurationRoot = configurationRoot;<a name="line.159"></a>
+<span class="sourceLineNo">160</span>    }<a name="line.160"></a>
+<span class="sourceLineNo">161</span><a name="line.161"></a>
+<span class="sourceLineNo">162</span>    public final String getConfigurationRoot() {<a name="line.162"></a>
+<span class="sourceLineNo">163</span>        return configurationRoot;<a name="line.163"></a>
+<span class="sourceLineNo">164</span>    }<a name="line.164"></a>
+<span class="sourceLineNo">165</span><a name="line.165"></a>
+<span class="sourceLineNo">166</span>    public void setPkiUser(String pkiUser) {<a name="line.166"></a>
+<span class="sourceLineNo">167</span>        this.pkiUser = pkiUser;<a name="line.167"></a>
+<span class="sourceLineNo">168</span>    }<a name="line.168"></a>
+<span class="sourceLineNo">169</span><a name="line.169"></a>
+<span class="sourceLineNo">170</span>    public String getPkiUser() {<a name="line.170"></a>
+<span class="sourceLineNo">171</span>        return pkiUser;<a name="line.171"></a>
+<span class="sourceLineNo">172</span>    }<a name="line.172"></a>
+<span class="sourceLineNo">173</span><a name="line.173"></a>
+<span class="sourceLineNo">174</span>    public void setUserCertificate(String userCertificate) {<a name="line.174"></a>
+<span class="sourceLineNo">175</span>        this.userCertificate = userCertificate;<a name="line.175"></a>
+<span class="sourceLineNo">176</span>    }<a name="line.176"></a>
+<span class="sourceLineNo">177</span><a name="line.177"></a>
+<span class="sourceLineNo">178</span>    public String getUserCertificate() {<a name="line.178"></a>
+<span class="sourceLineNo">179</span>        return userCertificate;<a name="line.179"></a>
+<span class="sourceLineNo">180</span>    }<a name="line.180"></a>
+<span class="sourceLineNo">181</span><a name="line.181"></a>
+<span class="sourceLineNo">182</span>    public void addDicomConfigurationExtension(LdapDicomConfigurationExtension ext) {<a name="line.182"></a>
+<span class="sourceLineNo">183</span>        ext.setDicomConfiguration(this);<a name="line.183"></a>
+<span class="sourceLineNo">184</span>        extensions.add(ext);<a name="line.184"></a>
+<span class="sourceLineNo">185</span>    }<a name="line.185"></a>
+<span class="sourceLineNo">186</span><a name="line.186"></a>
+<span class="sourceLineNo">187</span>    public boolean removeDicomConfigurationExtension(<a name="line.187"></a>
+<span class="sourceLineNo">188</span>            LdapDicomConfigurationExtension ext) {<a name="line.188"></a>
+<span class="sourceLineNo">189</span>        if (!extensions.remove(ext))<a name="line.189"></a>
+<span class="sourceLineNo">190</span>            return false;<a name="line.190"></a>
+<span class="sourceLineNo">191</span><a name="line.191"></a>
+<span class="sourceLineNo">192</span>        ext.setDicomConfiguration(null);<a name="line.192"></a>
+<span class="sourceLineNo">193</span>        return true;<a name="line.193"></a>
+<span class="sourceLineNo">194</span>    }<a name="line.194"></a>
+<span class="sourceLineNo">195</span><a name="line.195"></a>
+<span class="sourceLineNo">196</span>    @Override<a name="line.196"></a>
+<span class="sourceLineNo">197</span>    public synchronized void close() {<a name="line.197"></a>
+<span class="sourceLineNo">198</span>        safeClose(ctx);<a name="line.198"></a>
+<span class="sourceLineNo">199</span>    }<a name="line.199"></a>
+<span class="sourceLineNo">200</span><a name="line.200"></a>
+<span class="sourceLineNo">201</span>    @Override<a name="line.201"></a>
+<span class="sourceLineNo">202</span>    public synchronized boolean configurationExists() throws ConfigurationException {<a name="line.202"></a>
+<span class="sourceLineNo">203</span>        return configurationDN != null || findConfiguration();<a name="line.203"></a>
+<span class="sourceLineNo">204</span>    }<a name="line.204"></a>
+<span class="sourceLineNo">205</span><a name="line.205"></a>
+<span class="sourceLineNo">206</span>    public boolean exists(String dn) throws NamingException {<a name="line.206"></a>
+<span class="sourceLineNo">207</span>        try {<a name="line.207"></a>
+<span class="sourceLineNo">208</span>            ctx.getAttributes(dn);<a name="line.208"></a>
+<span class="sourceLineNo">209</span>            return true;<a name="line.209"></a>
+<span class="sourceLineNo">210</span>        } catch (NameNotFoundException e) {<a name="line.210"></a>
+<span class="sourceLineNo">211</span>            return false;<a name="line.211"></a>
+<span class="sourceLineNo">212</span>        }<a name="line.212"></a>
+<span class="sourceLineNo">213</span>    }<a name="line.213"></a>
+<span class="sourceLineNo">214</span><a name="line.214"></a>
+<span class="sourceLineNo">215</span>    @Override<a name="line.215"></a>
+<span class="sourceLineNo">216</span>    public synchronized boolean purgeConfiguration() throws ConfigurationException {<a name="line.216"></a>
+<span class="sourceLineNo">217</span>        if (!configurationExists())<a name="line.217"></a>
+<span class="sourceLineNo">218</span>            return false;<a name="line.218"></a>
+<span class="sourceLineNo">219</span><a name="line.219"></a>
+<span class="sourceLineNo">220</span>        try {<a name="line.220"></a>
+<span class="sourceLineNo">221</span>            destroySubcontextWithChilds(configurationDN);<a name="line.221"></a>
+<span class="sourceLineNo">222</span>            LOG.info("Purge DICOM Configuration at {}", configurationDN);<a name="line.222"></a>
+<span class="sourceLineNo">223</span>            clearConfigurationDN();<a name="line.223"></a>
+<span class="sourceLineNo">224</span>        } catch (NamingException e) {<a name="line.224"></a>
+<span class="sourceLineNo">225</span>            throw new ConfigurationException(e);<a name="line.225"></a>
+<span class="sourceLineNo">226</span>        }<a name="line.226"></a>
+<span class="sourceLineNo">227</span>        return true;<a name="line.227"></a>
+<span class="sourceLineNo">228</span>    }<a name="line.228"></a>
+<span class="sourceLineNo">229</span><a name="line.229"></a>
+<span class="sourceLineNo">230</span>    @Override<a name="line.230"></a>
+<span class="sourceLineNo">231</span>    public synchronized boolean registerAETitle(String aet) throws ConfigurationException {<a name="line.231"></a>
+<span class="sourceLineNo">232</span>        ensureConfigurationExists();<a name="line.232"></a>
+<span class="sourceLineNo">233</span>        try {<a name="line.233"></a>
+<span class="sourceLineNo">234</span>            createSubcontext(aetDN(aet, aetsRegistryDN),<a name="line.234"></a>
+<span class="sourceLineNo">235</span>                    LdapUtils.attrs("dicomUniqueAETitle", "dicomAETitle", aet));<a name="line.235"></a>
+<span class="sourceLineNo">236</span>            return true;<a name="line.236"></a>
+<span class="sourceLineNo">237</span>        } catch (NameAlreadyBoundException e) {<a name="line.237"></a>
+<span class="sourceLineNo">238</span>            return false;<a name="line.238"></a>
+<span class="sourceLineNo">239</span>        } catch (NamingException e) {<a name="line.239"></a>
+<span class="sourceLineNo">240</span>            throw new ConfigurationException(e);<a name="line.240"></a>
+<span class="sourceLineNo">241</span>       }<a name="line.241"></a>
+<span class="sourceLineNo">242</span>    }<a name="line.242"></a>
+<span class="sourceLineNo">243</span><a name="line.243"></a>
+<span class="sourceLineNo">244</span>    @Override<a name="line.244"></a>
+<span class="sourceLineNo">245</span>    public synchronized void unregisterAETitle(String aet) throws ConfigurationException {<a name="line.245"></a>
+<span class="sourceLineNo">246</span>        if (configurationExists())<a name="line.246"></a>
+<span class="sourceLineNo">247</span>            try {<a name="line.247"></a>
+<span class="sourceLineNo">248</span>                ctx.destroySubcontext(aetDN(aet, aetsRegistryDN));<a name="line.248"></a>
+<span class="sourceLineNo">249</span>            } catch (NameNotFoundException e) {<a name="line.249"></a>
+<span class="sourceLineNo">250</span>            } catch (NamingException e) {<a name="line.250"></a>
+<span class="sourceLineNo">251</span>                throw new ConfigurationException(e);<a name="line.251"></a>
+<span class="sourceLineNo">252</span>            }<a name="line.252"></a>
+<span class="sourceLineNo">253</span>    }<a name="line.253"></a>
+<span class="sourceLineNo">254</span><a name="line.254"></a>
+<span class="sourceLineNo">255</span>    @Override<a name="line.255"></a>
+<span class="sourceLineNo">256</span>    public synchronized ApplicationEntity findApplicationEntity(String aet)<a name="line.256"></a>
+<span class="sourceLineNo">257</span>            throws ConfigurationException {<a name="line.257"></a>
+<span class="sourceLineNo">258</span>        return findDevice(<a name="line.258"></a>
+<span class="sourceLineNo">259</span>                "(&amp;(objectclass=dicomNetworkAE)(dicomAETitle=" + aet + "))", aet)<a name="line.259"></a>
+<span class="sourceLineNo">260</span>            .getApplicationEntity(aet);<a name="line.260"></a>
+<span class="sourceLineNo">261</span>    }<a name="line.261"></a>
+<span class="sourceLineNo">262</span><a name="line.262"></a>
+<span class="sourceLineNo">263</span>    public synchronized Device findDevice(String filter, String childName)<a name="line.263"></a>
+<span class="sourceLineNo">264</span>            throws ConfigurationException {<a name="line.264"></a>
+<span class="sourceLineNo">265</span>        if (!configurationExists())<a name="line.265"></a>
+<span class="sourceLineNo">266</span>            throw new ConfigurationNotFoundException();<a name="line.266"></a>
+<span class="sourceLineNo">267</span><a name="line.267"></a>
+<span class="sourceLineNo">268</span>        SearchControls ctls = new SearchControls();<a name="line.268"></a>
+<span class="sourceLineNo">269</span>        ctls.setSearchScope(SearchControls.SUBTREE_SCOPE);<a name="line.269"></a>
+<span class="sourceLineNo">270</span>        ctls.setCountLimit(1);<a name="line.270"></a>
+<span class="sourceLineNo">271</span>        ctls.setReturningAttributes(StringUtils.EMPTY_STRING);<a name="line.271"></a>
+<span class="sourceLineNo">272</span>        ctls.setReturningObjFlag(false);<a name="line.272"></a>
+<span class="sourceLineNo">273</span>        NamingEnumeration&lt;SearchResult&gt; ne = null;<a name="line.273"></a>
+<span class="sourceLineNo">274</span>        String childDN;<a name="line.274"></a>
+<span class="sourceLineNo">275</span>        try {<a name="line.275"></a>
+<span class="sourceLineNo">276</span>            ne = ctx.search(devicesDN, filter, ctls);<a name="line.276"></a>
+<span class="sourceLineNo">277</span>            if (!ne.hasMore())<a name="line.277"></a>
+<span class="sourceLineNo">278</span>                throw new ConfigurationNotFoundException(childName);<a name="line.278"></a>
+<span class="sourceLineNo">279</span><a name="line.279"></a>
+<span class="sourceLineNo">280</span>            childDN = ne.next().getNameInNamespace();<a name="line.280"></a>
+<span class="sourceLineNo">281</span>        } catch (NamingException e) {<a name="line.281"></a>
+<span class="sourceLineNo">282</span>            throw new ConfigurationException(e);<a name="line.282"></a>
+<span class="sourceLineNo">283</span>        } finally {<a name="line.283"></a>
+<span class="sourceLineNo">284</span>           LdapUtils.safeClose(ne);<a name="line.284"></a>
+<span class="sourceLineNo">285</span>        }<a name="line.285"></a>
+<span class="sourceLineNo">286</span>        String deviceDN = childDN.substring(childDN.indexOf(',') + 1);<a name="line.286"></a>
+<span class="sourceLineNo">287</span>        return loadDevice(deviceDN);<a name="line.287"></a>
+<span class="sourceLineNo">288</span>    }<a name="line.288"></a>
+<span class="sourceLineNo">289</span><a name="line.289"></a>
+<span class="sourceLineNo">290</span>    @Override<a name="line.290"></a>
+<span class="sourceLineNo">291</span>    public synchronized Device findDevice(String name) throws ConfigurationException {<a name="line.291"></a>
+<span class="sourceLineNo">292</span>        if (!configurationExists())<a name="line.292"></a>
+<span class="sourceLineNo">293</span>            throw new ConfigurationNotFoundException();<a name="line.293"></a>
+<span class="sourceLineNo">294</span><a name="line.294"></a>
+<span class="sourceLineNo">295</span>        return loadDevice(deviceRef(name));<a name="line.295"></a>
+<span class="sourceLineNo">296</span>    }<a name="line.296"></a>
+<span class="sourceLineNo">297</span><a name="line.297"></a>
+<span class="sourceLineNo">298</span>    @Override<a name="line.298"></a>
+<span class="sourceLineNo">299</span>    public synchronized DeviceInfo[] listDeviceInfos(DeviceInfo keys)<a name="line.299"></a>
+<span class="sourceLineNo">300</span>            throws ConfigurationException {<a name="line.300"></a>
+<span class="sourceLineNo">301</span>        if (!configurationExists())<a name="line.301"></a>
+<span class="sourceLineNo">302</span>            return new DeviceInfo[0];<a name="line.302"></a>
+<span class="sourceLineNo">303</span><a name="line.303"></a>
+<span class="sourceLineNo">304</span>        ArrayList&lt;DeviceInfo&gt; results = new ArrayList&lt;DeviceInfo&gt;();<a name="line.304"></a>
+<span class="sourceLineNo">305</span>        NamingEnumeration&lt;SearchResult&gt; ne = null;<a name="line.305"></a>
+<span class="sourceLineNo">306</span>        try {<a name="line.306"></a>
+<span class="sourceLineNo">307</span>            ne = search(devicesDN, toFilter(keys), "dicomDeviceName",<a name="line.307"></a>
+<span class="sourceLineNo">308</span>                "dicomDescription",<a name="line.308"></a>
+<span class="sourceLineNo">309</span>                "dicomManufacturer",<a name="line.309"></a>
+<span class="sourceLineNo">310</span>                "dicomManufacturerModelName",<a name="line.310"></a>
+<span class="sourceLineNo">311</span>                "dicomSoftwareVersion",<a name="line.311"></a>
+<span class="sourceLineNo">312</span>                "dicomStationName",<a name="line.312"></a>
+<span class="sourceLineNo">313</span>                "dicomInstitutionName",<a name="line.313"></a>
+<span class="sourceLineNo">314</span>                "dicomInstitutionDepartmentName",<a name="line.314"></a>
+<span class="sourceLineNo">315</span>                "dicomPrimaryDeviceType",<a name="line.315"></a>
+<span class="sourceLineNo">316</span>                "dicomInstalled");<a name="line.316"></a>
+<span class="sourceLineNo">317</span>            while (ne.hasMore()) {<a name="line.317"></a>
+<span class="sourceLineNo">318</span>                DeviceInfo deviceInfo = new DeviceInfo();<a name="line.318"></a>
+<span class="sourceLineNo">319</span>                loadFrom(deviceInfo, ne.next().getAttributes());<a name="line.319"></a>
+<span class="sourceLineNo">320</span>                results.add(deviceInfo);<a name="line.320"></a>
+<span class="sourceLineNo">321</span>            }<a name="line.321"></a>
+<span class="sourceLineNo">322</span>        } catch (NamingException e) {<a name="line.322"></a>
+<span class="sourceLineNo">323</span>            throw new ConfigurationException(e);<a name="line.323"></a>
+<span class="sourceLineNo">324</span>        } finally {<a name="line.324"></a>
+<span class="sourceLineNo">325</span>           LdapUtils.safeClose(ne);<a name="line.325"></a>
+<span class="sourceLineNo">326</span>        }<a name="line.326"></a>
+<span class="sourceLineNo">327</span>        return results.toArray(new DeviceInfo[results.size()]);<a name="line.327"></a>
+<span class="sourceLineNo">328</span>    }<a name="line.328"></a>
+<span class="sourceLineNo">329</span><a name="line.329"></a>
+<span class="sourceLineNo">330</span>    private String toFilter(DeviceInfo keys) {<a name="line.330"></a>
+<span class="sourceLineNo">331</span>        if (keys == null)<a name="line.331"></a>
+<span class="sourceLineNo">332</span>            return "(objectclass=dicomDevice)";<a name="line.332"></a>
+<span class="sourceLineNo">333</span><a name="line.333"></a>
+<span class="sourceLineNo">334</span>        StringBuilder sb = new StringBuilder();<a name="line.334"></a>
+<span class="sourceLineNo">335</span>        sb.append("(&amp;(objectclass=dicomDevice)");<a name="line.335"></a>
+<span class="sourceLineNo">336</span>        appendFilter("dicomDeviceName", keys.getDeviceName(), sb);<a name="line.336"></a>
+<span class="sourceLineNo">337</span>        appendFilter("dicomDescription", keys.getDescription(), sb);<a name="line.337"></a>
+<span class="sourceLineNo">338</span>        appendFilter("dicomManufacturer", keys.getManufacturer(), sb);<a name="line.338"></a>
+<span class="sourceLineNo">339</span>        appendFilter("dicomManufacturerModelName", keys.getManufacturerModelName(), sb);<a name="line.339"></a>
+<span class="sourceLineNo">340</span>        appendFilter("dicomSoftwareVersion", keys.getSoftwareVersions(), sb);<a name="line.340"></a>
+<span class="sourceLineNo">341</span>        appendFilter("dicomStationName", keys.getStationName(), sb);<a name="line.341"></a>
+<span class="sourceLineNo">342</span>        appendFilter("dicomInstitutionName", keys.getInstitutionNames(), sb);<a name="line.342"></a>
+<span class="sourceLineNo">343</span>        appendFilter("dicomInstitutionDepartmentName", keys.getInstitutionalDepartmentNames(), sb);<a name="line.343"></a>
+<span class="sourceLineNo">344</span>        appendFilter("dicomPrimaryDeviceType", keys.getPrimaryDeviceTypes(), sb);<a name="line.344"></a>
+<span class="sourceLineNo">345</span>        appendFilter("dicomInstalled", keys.getInstalled(), sb);<a name="line.345"></a>
+<span class="sourceLineNo">346</span>        sb.append(")");<a name="line.346"></a>
+<span class="sourceLineNo">347</span>        return sb.toString();<a name="line.347"></a>
+<span class="sourceLineNo">348</span>    }<a name="line.348"></a>
+<span class="sourceLineNo">349</span><a name="line.349"></a>
+<span class="sourceLineNo">350</span>    private void appendFilter(String attrid, Boolean value, StringBuilder sb) {<a name="line.350"></a>
+<span class="sourceLineNo">351</span>        if (value != null)<a name="line.351"></a>
+<span class="sourceLineNo">352</span>            appendFilter(attrid, LdapUtils.toString(value), sb);<a name="line.352"></a>
+<span class="sourceLineNo">353</span>    }<a name="line.353"></a>
+<span class="sourceLineNo">354</span><a name="line.354"></a>
+<span class="sourceLineNo">355</span>    private void appendFilter(String attrid, String value, StringBuilder sb) {<a name="line.355"></a>
+<span class="sourceLineNo">356</span>        if (value == null)<a name="line.356"></a>
+<span class="sourceLineNo">357</span>            return;<a name="line.357"></a>
+<span class="sourceLineNo">358</span><a name="line.358"></a>
+<span class="sourceLineNo">359</span>        sb.append('(').append(attrid).append('=').append(value).append(')');<a name="line.359"></a>
+<span class="sourceLineNo">360</span>    }<a name="line.360"></a>
+<span class="sourceLineNo">361</span><a name="line.361"></a>
+<span class="sourceLineNo">362</span>    private void appendFilter(String attrid, String[] values, StringBuilder sb) {<a name="line.362"></a>
+<span class="sourceLineNo">363</span>        if (values.length == 0)<a name="line.363"></a>
+<span class="sourceLineNo">364</span>            return;<a name="line.364"></a>
+<span class="sourceLineNo">365</span><a name="line.365"></a>
+<span class="sourceLineNo">366</span>        if (values.length == 1) {<a name="line.366"></a>
+<span class="sourceLineNo">367</span>            appendFilter(attrid, values[0], sb);<a name="line.367"></a>
+<span class="sourceLineNo">368</span>            return;<a name="line.368"></a>
+<span class="sourceLineNo">369</span>        }<a name="line.369"></a>
+<span class="sourceLineNo">370</span><a name="line.370"></a>
+<span class="sourceLineNo">371</span>        sb.append("(|");<a name="line.371"></a>
+<span class="sourceLineNo">372</span>        for (String value : values)<a name="line.372"></a>
+<span class="sourceLineNo">373</span>            appendFilter(attrid, value, sb);<a name="line.373"></a>
+<span class="sourceLineNo">374</span>        sb.append(")");<a name="line.374"></a>
+<span class="sourceLineNo">375</span>    }<a name="line.375"></a>
+<span class="sourceLineNo">376</span><a name="line.376"></a>
+<span class="sourceLineNo">377</span>    private void loadFrom(DeviceInfo deviceInfo, Attributes attrs)<a name="line.377"></a>
+<span class="sourceLineNo">378</span>            throws NamingException {<a name="line.378"></a>
+<span class="sourceLineNo">379</span>        deviceInfo.setDeviceName(<a name="line.379"></a>
+<span class="sourceLineNo">380</span>                LdapUtils.stringValue(attrs.get("dicomDeviceName"), null));<a name="line.380"></a>
+<span class="sourceLineNo">381</span>        deviceInfo.setDescription(<a name="line.381"></a>
+<span class="sourceLineNo">382</span>                LdapUtils.stringValue(attrs.get("dicomDescription"), null));<a name="line.382"></a>
+<span class="sourceLineNo">383</span>        deviceInfo.setManufacturer(<a name="line.383"></a>
+<span class="sourceLineNo">384</span>                LdapUtils.stringValue(attrs.get("dicomManufacturer"), null));<a name="line.384"></a>
+<span class="sourceLineNo">385</span>        deviceInfo.setManufacturerModelName(<a name="line.385"></a>
+<span class="sourceLineNo">386</span>                LdapUtils.stringValue(attrs.get("dicomManufacturerModelName"), null));<a name="line.386"></a>
+<span class="sourceLineNo">387</span>        deviceInfo.setSoftwareVersions(<a name="line.387"></a>
+<span class="sourceLineNo">388</span>                LdapUtils.stringArray(attrs.get("dicomSoftwareVersion")));<a name="line.388"></a>
+<span class="sourceLineNo">389</span>        deviceInfo.setStationName(<a name="line.389"></a>
+<span class="sourceLineNo">390</span>                LdapUtils.stringValue(attrs.get("dicomStationName"), null));<a name="line.390"></a>
+<span class="sourceLineNo">391</span>        deviceInfo.setInstitutionNames(<a name="line.391"></a>
+<span class="sourceLineNo">392</span>                LdapUtils.stringArray(attrs.get("dicomInstitutionName")));<a name="line.392"></a>
+<span class="sourceLineNo">393</span>        deviceInfo.setInstitutionalDepartmentNames(<a name="line.393"></a>
+<span class="sourceLineNo">394</span>                LdapUtils.stringArray(attrs.get("dicomInstitutionDepartmentName")));<a name="line.394"></a>
+<span class="sourceLineNo">395</span>        deviceInfo.setPrimaryDeviceTypes(<a name="line.395"></a>
+<span class="sourceLineNo">396</span>                LdapUtils.stringArray(attrs.get("dicomPrimaryDeviceType")));<a name="line.396"></a>
+<span class="sourceLineNo">397</span>        deviceInfo.setInstalled(<a name="line.397"></a>
+<span class="sourceLineNo">398</span>                LdapUtils.booleanValue(attrs.get("dicomInstalled"), true));<a name="line.398"></a>
+<span class="sourceLineNo">399</span>    }<a name="line.399"></a>
+<span class="sourceLineNo">400</span><a name="line.400"></a>
+<span class="sourceLineNo">401</span>    @Override<a name="line.401"></a>
+<span class="sourceLineNo">402</span>    public synchronized String[] listDeviceNames() throws ConfigurationException {<a name="line.402"></a>
+<span class="sourceLineNo">403</span>        if (!configurationExists())<a name="line.403"></a>
+<span class="sourceLineNo">404</span>            return StringUtils.EMPTY_STRING;<a name="line.404"></a>
+<span class="sourceLineNo">405</span><a name="line.405"></a>
+<span class="sourceLineNo">406</span>        return list(devicesDN, "(objectclass=dicomDevice)", "dicomDeviceName");<a name="line.406"></a>
+<span class="sourceLineNo">407</span>    }<a name="line.407"></a>
+<span class="sourceLineNo">408</span><a name="line.408"></a>
+<span class="sourceLineNo">409</span>    @Override<a name="line.409"></a>
+<span class="sourceLineNo">410</span>    public synchronized String[] listRegisteredAETitles() throws ConfigurationException {<a name="line.410"></a>
+<span class="sourceLineNo">411</span>        if (!configurationExists())<a name="line.411"></a>
+<span class="sourceLineNo">412</span>            return StringUtils.EMPTY_STRING;<a name="line.412"></a>
+<span class="sourceLineNo">413</span><a name="line.413"></a>
+<span class="sourceLineNo">414</span>        return list(aetsRegistryDN, "(objectclass=dicomUniqueAETitle)", "dicomAETitle");<a name="line.414"></a>
+<span class="sourceLineNo">415</span>    }<a name="line.415"></a>
+<span class="sourceLineNo">416</span><a name="line.416"></a>
+<span class="sourceLineNo">417</span>    public synchronized String[] list(String dn, String filter, String attrID)<a name="line.417"></a>
+<span class="sourceLineNo">418</span>            throws ConfigurationException {<a name="line.418"></a>
+<span class="sourceLineNo">419</span>        ArrayList&lt;String&gt; values = new ArrayList&lt;String&gt;();<a name="line.419"></a>
+<span class="sourceLineNo">420</span>        NamingEnumeration&lt;SearchResult&gt; ne = null;<a name="line.420"></a>
+<span class="sourceLineNo">421</span>        try {<a name="line.421"></a>
+<span class="sourceLineNo">422</span>            ne = search(dn, filter, attrID );<a name="line.422"></a>
+<span class="sourceLineNo">423</span>            while (ne.hasMore()) {<a name="line.423"></a>
+<span class="sourceLineNo">424</span>                SearchResult sr = ne.next();<a name="line.424"></a>
+<span class="sourceLineNo">425</span>                Attributes attrs = sr.getAttributes();<a name="line.425"></a>
+<span class="sourceLineNo">426</span>                values.add(LdapUtils.stringValue(attrs.get(attrID), null));<a name="line.426"></a>
+<span class="sourceLineNo">427</span>            }<a name="line.427"></a>
+<span class="sourceLineNo">428</span>        } catch (NamingException e) {<a name="line.428"></a>
+<span class="sourceLineNo">429</span>            throw new ConfigurationException(e);<a name="line.429"></a>
+<span class="sourceLineNo">430</span>        } finally {<a name="line.430"></a>
+<span class="sourceLineNo">431</span>           LdapUtils.safeClose(ne);<a name="line.431"></a>
+<span class="sourceLineNo">432</span>        }<a name="line.432"></a>
+<span class="sourceLineNo">433</span>        return values.toArray(new String[values.size()]);<a name="line.433"></a>
+<span class="sourceLineNo">434</span>    }<a name="line.434"></a>
+<span class="sourceLineNo">435</span><a name="line.435"></a>
+<span class="sourceLineNo">436</span>    @Override<a name="line.436"></a>
+<span class="sourceLineNo">437</span>    public synchronized void persist(Device device) throws ConfigurationException {<a name="line.437"></a>
+<span class="sourceLineNo">438</span>        ensureConfigurationExists();<a name="line.438"></a>
+<span class="sourceLineNo">439</span>        String deviceName = device.getDeviceName();<a name="line.439"></a>
+<span class="sourceLineNo">440</span>        String deviceDN = deviceRef(deviceName);<a name="line.440"></a>
+<span class="sourceLineNo">441</span>        boolean rollback = false;<a name="line.441"></a>
+<span class="sourceLineNo">442</span>        try {<a name="line.442"></a>
+<span class="sourceLineNo">443</span>            createSubcontext(deviceDN, storeTo(device, new BasicAttributes(true)));<a name="line.443"></a>
+<span class="sourceLineNo">444</span>            rollback = true;<a name="line.444"></a>
+<span class="sourceLineNo">445</span>            storeChilds(deviceDN, device);<a name="line.445"></a>
+<span class="sourceLineNo">446</span>            updateCertificates(device);<a name="line.446"></a>
+<span class="sourceLineNo">447</span>            rollback = false;<a name="line.447"></a>
+<span class="sourceLineNo">448</span>        } catch (NameAlreadyBoundException e) {<a name="line.448"></a>
+<span class="sourceLineNo">449</span>            throw new ConfigurationAlreadyExistsException(deviceName);<a name="line.449"></a>
+<span class="sourceLineNo">450</span>        } catch (NamingException e) {<a name="line.450"></a>
+<span class="sourceLineNo">451</span>            throw new ConfigurationException(e);<a name="line.451"></a>
+<span class="sourceLineNo">452</span>        } catch (CertificateException e) {<a name="line.452"></a>
+<span class="sourceLineNo">453</span>            throw new ConfigurationException(e);<a name="line.453"></a>
+<span class="sourceLineNo">454</span>        } finally {<a name="line.454"></a>
+<span class="sourceLineNo">455</span>            if (rollback)<a name="line.455"></a>
+<span class="sourceLineNo">456</span>                try {<a name="line.456"></a>
+<span class="sourceLineNo">457</span>                    destroySubcontextWithChilds(deviceDN);<a name="line.457"></a>
+<span class="sourceLineNo">458</span>                } catch (NamingException e) {<a name="line.458"></a>
+<span class="sourceLineNo">459</span>                    LOG.warn("Rollback failed:", e);<a name="line.459"></a>
+<span class="sourceLineNo">460</span>                }<a name="line.460"></a>
+<span class="sourceLineNo">461</span>        }<a name="line.461"></a>
+<span class="sourceLineNo">462</span>    }<a name="line.462"></a>
+<span class="sourceLineNo">463</span><a name="line.463"></a>
+<span class="sourceLineNo">464</span>    private void updateCertificates(Device device)<a name="line.464"></a>
+<span class="sourceLineNo">465</span>            throws CertificateException, NamingException {<a name="line.465"></a>
+<span class="sourceLineNo">466</span>        for (String dn : device.getAuthorizedNodeCertificateRefs())<a name="line.466"></a>
+<span class="sourceLineNo">467</span>            updateCertificates(dn, loadCertificates(dn),<a name="line.467"></a>
+<span class="sourceLineNo">468</span>                    device.getAuthorizedNodeCertificates(dn));<a name="line.468"></a>
+<span class="sourceLineNo">469</span>        for (String dn : device.getThisNodeCertificateRefs())<a name="line.469"></a>
+<span class="sourceLineNo">470</span>            updateCertificates(dn, loadCertificates(dn),<a name="line.470"></a>
+<span class="sourceLineNo">471</span>                    device.getThisNodeCertificates(dn));<a name="line.471"></a>
+<span class="sourceLineNo">472</span>    }<a name="line.472"></a>
+<span class="sourceLineNo">473</span><a name="line.473"></a>
+<span class="sourceLineNo">474</span>    private void updateCertificates(String dn,<a name="line.474"></a>
+<span class="sourceLineNo">475</span>            X509Certificate[] prev, X509Certificate[] certs)<a name="line.475"></a>
+<span class="sourceLineNo">476</span>            throws CertificateEncodingException, NamingException {<a name="line.476"></a>
+<span class="sourceLineNo">477</span>        if (!LdapUtils.equals(prev, certs))<a name="line.477"></a>
+<span class="sourceLineNo">478</span>            storeCertificates(dn, certs);<a name="line.478"></a>
+<span class="sourceLineNo">479</span>    }<a name="line.479"></a>
+<span class="sourceLineNo">480</span><a name="line.480"></a>
+<span class="sourceLineNo">481</span>    private void storeChilds(String deviceDN, Device device) throws NamingException {<a name="line.481"></a>
+<span class="sourceLineNo">482</span>        for (Connection conn : device.listConnections())<a name="line.482"></a>
+<span class="sourceLineNo">483</span>            createSubcontext(LdapUtils.dnOf(conn, deviceDN), storeTo(conn, new BasicAttributes(true)));<a name="line.483"></a>
+<span class="sourceLineNo">484</span>        for (LdapDicomConfigurationExtension ext : extensions)<a name="line.484"></a>
+<span class="sourceLineNo">485</span>            ext.storeChilds(deviceDN, device);<a name="line.485"></a>
+<span class="sourceLineNo">486</span>        for (ApplicationEntity ae : device.getApplicationEntities()) {<a name="line.486"></a>
+<span class="sourceLineNo">487</span>            String aeDN = aetDN(ae.getAETitle(), deviceDN);<a name="line.487"></a>
+<span class="sourceLineNo">488</span>            createSubcontext(aeDN, storeTo(ae, deviceDN, new BasicAttributes(true)));<a name="line.488"></a>
+<span class="sourceLineNo">489</span>            storeChilds(aeDN, ae);<a name="line.489"></a>
+<span class="sourceLineNo">490</span>            for (LdapDicomConfigurationExtension ext : extensions) {<a name="line.490"></a>
+<span class="sourceLineNo">491</span>                ext.storeChilds(aeDN, ae);<a name="line.491"></a>
+<span class="sourceLineNo">492</span>            }<a name="line.492"></a>
+<span class="sourceLineNo">493</span>        }<a name="line.493"></a>
+<span class="sourceLineNo">494</span>    }<a name="line.494"></a>
+<span class="sourceLineNo">495</span><a name="line.495"></a>
+<span class="sourceLineNo">496</span>    private void storeChilds(String aeDN, ApplicationEntity ae)<a name="line.496"></a>
+<span class="sourceLineNo">497</span>            throws NamingException {<a name="line.497"></a>
+<span class="sourceLineNo">498</span>        for (TransferCapability tc : ae.getTransferCapabilities())<a name="line.498"></a>
+<span class="sourceLineNo">499</span>            createSubcontext(dnOf(tc, aeDN), storeTo(tc, new BasicAttributes(true)));<a name="line.499"></a>
+<span class="sourceLineNo">500</span>    }<a name="line.500"></a>
+<span class="sourceLineNo">501</span><a name="line.501"></a>
+<span class="sourceLineNo">502</span>    @Override<a name="line.502"></a>
+<span class="sourceLineNo">503</span>    public synchronized void merge(Device device) throws ConfigurationException {<a name="line.503"></a>
+<span class="sourceLineNo">504</span>        if (!configurationExists())<a name="line.504"></a>
+<span class="sourceLineNo">505</span>            throw new ConfigurationNotFoundException();<a name="line.505"></a>
+<span class="sourceLineNo">506</span><a name="line.506"></a>
+<span class="sourceLineNo">507</span>        String deviceDN = deviceRef(device.getDeviceName());<a name="line.507"></a>
+<span class="sourceLineNo">508</span>        Device prev = loadDevice(deviceDN);<a name="line.508"></a>
+<span class="sourceLineNo">509</span>        try {<a name="line.509"></a>
+<span class="sourceLineNo">510</span>            modifyAttributes(deviceDN, storeDiffs(prev, device, new ArrayList&lt;ModificationItem&gt;()));<a name="line.510"></a>
+<span class="sourceLineNo">511</span>            mergeChilds(prev, device, deviceDN);<a name="line.511"></a>
+<span class="sourceLineNo">512</span>            updateCertificates(prev, device);<a name="line.512"></a>
+<span class="sourceLineNo">513</span>        } catch (NameNotFoundException e) {<a name="line.513"></a>
+<span class="sourceLineNo">514</span>            throw new ConfigurationNotFoundException(e);<a name="line.514"></a>
+<span class="sourceLineNo">515</span>        } catch (NamingException e) {<a name="line.515"></a>
+<span class="sourceLineNo">516</span>            throw new ConfigurationException(e);<a name="line.516"></a>
+<span class="sourceLineNo">517</span>        } catch (CertificateException e) {<a name="line.517"></a>
+<span class="sourceLineNo">518</span>            throw new ConfigurationException(e);<a name="line.518"></a>
+<span class="sourceLineNo">519</span>        }<a name="line.519"></a>
+<span class="sourceLineNo">520</span>    }<a name="line.520"></a>
+<span class="sourceLineNo">521</span><a name="line.521"></a>
+<span class="sourceLineNo">522</span>    private void updateCertificates(Device prev, Device device)<a name="line.522"></a>
+<span class="sourceLineNo">523</span>            throws CertificateException, NamingException {<a name="line.523"></a>
+<span class="sourceLineNo">524</span>        for (String dn : device.getAuthorizedNodeCertificateRefs()) {<a name="line.524"></a>
+<span class="sourceLineNo">525</span>            X509Certificate[] prevCerts = prev.getAuthorizedNodeCertificates(dn);<a name="line.525"></a>
+<span class="sourceLineNo">526</span>            updateCertificates(dn,<a name="line.526"></a>
+<span class="sourceLineNo">527</span>                    prevCerts != null ? prevCerts : loadCertificates(dn),<a name="line.527"></a>
+<span class="sourceLineNo">528</span>                    device.getAuthorizedNodeCertificates(dn));<a name="line.528"></a>
+<span class="sourceLineNo">529</span>        }<a name="line.529"></a>
+<span class="sourceLineNo">530</span>        for (String dn : device.getThisNodeCertificateRefs()) {<a name="line.530"></a>
+<span class="sourceLineNo">531</span>            X509Certificate[] prevCerts = prev.getThisNodeCertificates(dn);<a name="line.531"></a>
+<span class="sourceLineNo">532</span>            updateCertificates(dn,<a name="line.532"></a>
+<span class="sourceLineNo">533</span>                    prevCerts != null ? prevCerts : loadCertificates(dn),<a name="line.533"></a>
+<span class="sourceLineNo">534</span>                    device.getThisNodeCertificates(dn));<a name="line.534"></a>
+<span class="sourceLineNo">535</span>        }<a name="line.535"></a>
+<span class="sourceLineNo">536</span>    }<a name="line.536"></a>
+<span class="sourceLineNo">537</span><a name="line.537"></a>
+<span class="sourceLineNo">538</span>    private void mergeChilds(Device prev, Device device, String deviceDN)<a name="line.538"></a>
+<span class="sourceLineNo">539</span>            throws NamingException {<a name="line.539"></a>
+<span class="sourceLineNo">540</span>        mergeConnections(prev, device, deviceDN);<a name="line.540"></a>
+<span class="sourceLineNo">541</span>        mergeAEs(prev, device, deviceDN);<a name="line.541"></a>
+<span class="sourceLineNo">542</span>        for (LdapDicomConfigurationExtension ext : extensions)<a name="line.542"></a>
+<span class="sourceLineNo">543</span>            ext.mergeChilds(prev, device, deviceDN);<a name="line.543"></a>
+<span class="sourceLineNo">544</span>    }<a name="line.544"></a>
+<span class="sourceLineNo">545</span><a name="line.545"></a>
+<span class="sourceLineNo">546</span>    @Override<a name="line.546"></a>
+<span class="sourceLineNo">547</span>    public synchronized void removeDevice(String name) throws ConfigurationException {<a name="line.547"></a>
+<span class="sourceLineNo">548</span>        if (!configurationExists())<a name="line.548"></a>
+<span class="sourceLineNo">549</span>            throw new ConfigurationNotFoundException();<a name="line.549"></a>
+<span class="sourceLineNo">550</span><a name="line.550"></a>
+<span class="sourceLineNo">551</span>        removeDeviceWithDN(deviceRef(name));<a name="line.551"></a>
+<span class="sourceLineNo">552</span>    }<a name="line.552"></a>
+<span class="sourceLineNo">553</span><a name="line.553"></a>
+<span class="sourceLineNo">554</span>    private void removeDeviceWithDN(String deviceDN) throws ConfigurationException {<a name="line.554"></a>
+<span class="sourceLineNo">555</span>        try {<a name="line.555"></a>
+<span class="sourceLineNo">556</span>            destroySubcontextWithChilds(deviceDN);<a name="line.556"></a>
+<span class="sourceLineNo">557</span>        } catch (NameNotFoundException e) {<a name="line.557"></a>
+<span class="sourceLineNo">558</span>            throw new ConfigurationNotFoundException(e);<a name="line.558"></a>
+<span class="sourceLineNo">559</span>        } catch (NamingException e) {<a name="line.559"></a>
+<span class="sourceLineNo">560</span>            throw new ConfigurationException(e);<a name="line.560"></a>
+<span class="sourceLineNo">561</span>        }<a name="line.561"></a>
+<span class="sourceLineNo">562</span>    }<a name="line.562"></a>
+<span class="sourceLineNo">563</span><a name="line.563"></a>
+<span class="sourceLineNo">564</span>    public synchronized void createSubcontext(String name, Attributes attrs)<a name="line.564"></a>
+<span class="sourceLineNo">565</span>            throws NamingException {<a name="line.565"></a>
+<span class="sourceLineNo">566</span>        safeClose(ctx.createSubcontext(name, attrs));<a name="line.566"></a>
+<span class="sourceLineNo">567</span>    }<a name="line.567"></a>
+<span class="sourceLineNo">568</span><a name="line.568"></a>
+<span class="sourceLineNo">569</span>    public synchronized void destroySubcontext(String dn) throws NamingException {<a name="line.569"></a>
+<span class="sourceLineNo">570</span>        ctx.destroySubcontext(dn);<a name="line.570"></a>
+<span class="sourceLineNo">571</span>    }<a name="line.571"></a>
+<span class="sourceLineNo">572</span><a name="line.572"></a>
+<span class="sourceLineNo">573</span>    public synchronized void destroySubcontextWithChilds(String name)<a name="line.573"></a>
+<span class="sourceLineNo">574</span>            throws NamingException {<a name="line.574"></a>
+<span class="sourceLineNo">575</span>        NamingEnumeration&lt;NameClassPair&gt; list = ctx.list(name);<a name="line.575"></a>
+<span class="sourceLineNo">576</span>        try {<a name="line.576"></a>
+<span class="sourceLineNo">577</span>            while (list.hasMore())<a name="line.577"></a>
+<span class="sourceLineNo">578</span>                destroySubcontextWithChilds(list.next().getNameInNamespace());<a name="line.578"></a>
+<span class="sourceLineNo">579</span>        } finally {<a name="line.579"></a>
+<span class="sourceLineNo">580</span>            LdapUtils.safeClose(list);<a name="line.580"></a>
+<span class="sourceLineNo">581</span>        }<a name="line.581"></a>
+<span class="sourceLineNo">582</span>        ctx.destroySubcontext(name);<a name="line.582"></a>
+<span class="sourceLineNo">583</span>    }<a name="line.583"></a>
+<span class="sourceLineNo">584</span><a name="line.584"></a>
+<span class="sourceLineNo">585</span>    private void setConfigurationDN(String configurationDN) {<a name="line.585"></a>
+<span class="sourceLineNo">586</span>        this.configurationDN = configurationDN;<a name="line.586"></a>
+<span class="sourceLineNo">587</span>        this.devicesDN = CN_DEVICES + configurationDN;<a name="line.587"></a>
+<span class="sourceLineNo">588</span>        this.aetsRegistryDN = CN_UNIQUE_AE_TITLES_REGISTRY + configurationDN;<a name="line.588"></a>
+<span class="sourceLineNo">589</span>    }<a name="line.589"></a>
+<span class="sourceLineNo">590</span><a name="line.590"></a>
+<span class="sourceLineNo">591</span>    public String getConfigurationDN() {<a name="line.591"></a>
+<span class="sourceLineNo">592</span>        return configurationDN;<a name="line.592"></a>
+<span class="sourceLineNo">593</span>    }<a name="line.593"></a>
+<span class="sourceLineNo">594</span><a name="line.594"></a>
+<span class="sourceLineNo">595</span>   private void clearConfigurationDN() {<a name="line.595"></a>
+<span class="sourceLineNo">596</span>        this.configurationDN = null;<a name="line.596"></a>
+<span class="sourceLineNo">597</span>        this.devicesDN = null;<a name="line.597"></a>
+<span class="sourceLineNo">598</span>        this.aetsRegistryDN = null;<a name="line.598"></a>
+<span class="sourceLineNo">599</span>    }<a name="line.599"></a>
+<span class="sourceLineNo">600</span><a name="line.600"></a>
+<span class="sourceLineNo">601</span>    public void ensureConfigurationExists() throws ConfigurationException {<a name="line.601"></a>
+<span class="sourceLineNo">602</span>        if (!configurationExists())<a name="line.602"></a>
+<span class="sourceLineNo">603</span>            initConfiguration();<a name="line.603"></a>
+<span class="sourceLineNo">604</span>    }<a name="line.604"></a>
+<span class="sourceLineNo">605</span><a name="line.605"></a>
+<span class="sourceLineNo">606</span>    private void initConfiguration() throws ConfigurationException {<a name="line.606"></a>
+<span class="sourceLineNo">607</span>        setConfigurationDN("cn=" + configurationCN + ',' + baseDN);<a name="line.607"></a>
+<span class="sourceLineNo">608</span>        try {<a name="line.608"></a>
+<span class="sourceLineNo">609</span>            createSubcontext(configurationDN,<a name="line.609"></a>
+<span class="sourceLineNo">610</span>                    LdapUtils.attrs(configurationRoot, "cn", configurationCN));<a name="line.610"></a>
+<span class="sourceLineNo">611</span>            createSubcontext(devicesDN,<a name="line.611"></a>
+<span class="sourceLineNo">612</span>                    LdapUtils.attrs("dicomDevicesRoot", "cn", "Devices"));<a name="line.612"></a>
+<span class="sourceLineNo">613</span>            createSubcontext(aetsRegistryDN,<a name="line.613"></a>
+<span class="sourceLineNo">614</span>                    LdapUtils.attrs("dicomUniqueAETitlesRegistryRoot", <a name="line.614"></a>
+<span class="sourceLineNo">615</span>                            "cn", "Unique AE Titles Registry"));<a name="line.615"></a>
+<span class="sourceLineNo">616</span>            LOG.info("Create DICOM Configuration at {}", configurationDN);<a name="line.616"></a>
+<span class="sourceLineNo">617</span>        } catch (NamingException e) {<a name="line.617"></a>
+<span class="sourceLineNo">618</span>            clearConfigurationDN();<a name="line.618"></a>
+<span class="sourceLineNo">619</span>            throw new ConfigurationException(e);<a name="line.619"></a>
+<span class="sourceLineNo">620</span>        }<a name="line.620"></a>
+<span class="sourceLineNo">621</span>    }<a name="line.621"></a>
+<span class="sourceLineNo">622</span><a name="line.622"></a>
+<span class="sourceLineNo">623</span>   private boolean findConfiguration() throws ConfigurationException {<a name="line.623"></a>
+<span class="sourceLineNo">624</span>        NamingEnumeration&lt;SearchResult&gt; ne = null;<a name="line.624"></a>
+<span class="sourceLineNo">625</span>        try {<a name="line.625"></a>
+<span class="sourceLineNo">626</span>            SearchControls ctls = new SearchControls();<a name="line.626"></a>
+<span class="sourceLineNo">627</span>            ctls.setSearchScope(SearchControls.SUBTREE_SCOPE);<a name="line.627"></a>
+<span class="sourceLineNo">628</span>            ctls.setCountLimit(1);<a name="line.628"></a>
+<span class="sourceLineNo">629</span>            ctls.setReturningAttributes(StringUtils.EMPTY_STRING);<a name="line.629"></a>
+<span class="sourceLineNo">630</span>            ctls.setReturningObjFlag(false);<a name="line.630"></a>
+<span class="sourceLineNo">631</span>            ne = ctx.search(<a name="line.631"></a>
+<span class="sourceLineNo">632</span>                    baseDN,<a name="line.632"></a>
+<span class="sourceLineNo">633</span>                    "(&amp;(objectclass=" + configurationRoot<a name="line.633"></a>
+<span class="sourceLineNo">634</span>                            + ")(cn=" + configurationCN + "))",<a name="line.634"></a>
+<span class="sourceLineNo">635</span>                    ctls);<a name="line.635"></a>
+<span class="sourceLineNo">636</span>            if (!ne.hasMore())<a name="line.636"></a>
+<span class="sourceLineNo">637</span>                return false;<a name="line.637"></a>
+<span class="sourceLineNo">638</span>    <a name="line.638"></a>
+<span class="sourceLineNo">639</span>            setConfigurationDN(ne.next().getName() + "," + baseDN);<a name="line.639"></a>
+<span class="sourceLineNo">640</span>            return true;<a name="line.640"></a>
+<span class="sourceLineNo">641</span>        } catch (NamingException e) {<a name="line.641"></a>
+<span class="sourceLineNo">642</span>            throw new ConfigurationException(e);<a name="line.642"></a>
+<span class="sourceLineNo">643</span>        } finally {<a name="line.643"></a>
+<span class="sourceLineNo">644</span>            LdapUtils.safeClose(ne);<a name="line.644"></a>
+<span class="sourceLineNo">645</span>        }<a name="line.645"></a>
+<span class="sourceLineNo">646</span>    }<a name="line.646"></a>
+<span class="sourceLineNo">647</span><a name="line.647"></a>
+<span class="sourceLineNo">648</span>    private Attributes storeTo(Device device, Attributes attrs) {<a name="line.648"></a>
+<span class="sourceLineNo">649</span>        BasicAttribute objectclass = new BasicAttribute("objectclass", "dicomDevice");<a name="line.649"></a>
+<span class="sourceLineNo">650</span>        attrs.put(objectclass);<a name="line.650"></a>
+<span class="sourceLineNo">651</span>        LdapUtils.storeNotNull(attrs, "dicomDeviceName", device.getDeviceName());<a name="line.651"></a>
+<span class="sourceLineNo">652</span>        LdapUtils.storeNotNull(attrs, "dicomDescription", device.getDescription());<a name="line.652"></a>
+<span class="sourceLineNo">653</span>        LdapUtils.storeNotNull(attrs, "dicomManufacturer", device.getManufacturer());<a name="line.653"></a>
+<span class="sourceLineNo">654</span>        LdapUtils.storeNotNull(attrs, "dicomManufacturerModelName",<a name="line.654"></a>
+<span class="sourceLineNo">655</span>                device.getManufacturerModelName());<a name="line.655"></a>
+<span class="sourceLineNo">656</span>        LdapUtils.storeNotEmpty(attrs, "dicomSoftwareVersion",<a name="line.656"></a>
+<span class="sourceLineNo">657</span>                device.getSoftwareVersions());<a name="line.657"></a>
+<span class="sourceLineNo">658</span>        LdapUtils.storeNotNull(attrs, "dicomStationName", device.getStationName());<a name="line.658"></a>
+<span class="sourceLineNo">659</span>        LdapUtils.storeNotNull(attrs, "dicomDeviceSerialNumber",<a name="line.659"></a>
+<span class="sourceLineNo">660</span>                device.getDeviceSerialNumber());<a name="line.660"></a>
+<span class="sourceLineNo">661</span>        LdapUtils.storeNotNull(attrs, "dicomIssuerOfPatientID",<a name="line.661"></a>
+<span class="sourceLineNo">662</span>                device.getIssuerOfPatientID());<a name="line.662"></a>
+<span class="sourceLineNo">663</span>        LdapUtils.storeNotNull(attrs, "dicomIssuerOfAccessionNumber",<a name="line.663"></a>
+<span class="sourceLineNo">664</span>                device.getIssuerOfAccessionNumber());<a name="line.664"></a>
+<span class="sourceLineNo">665</span>        LdapUtils.storeNotNull(attrs, "dicomOrderPlacerIdentifier",<a name="line.665"></a>
+<span class="sourceLineNo">666</span>                device.getOrderPlacerIdentifier());<a name="line.666"></a>
+<span class="sourceLineNo">667</span>        LdapUtils.storeNotNull(attrs, "dicomOrderFillerIdentifier",<a name="line.667"></a>
+<span class="sourceLineNo">668</span>                device.getOrderFillerIdentifier());<a name="line.668"></a>
+<span class="sourceLineNo">669</span>        LdapUtils.storeNotNull(attrs, "dicomIssuerOfAdmissionID",<a name="line.669"></a>
+<span class="sourceLineNo">670</span>                device.getIssuerOfAdmissionID());<a name="line.670"></a>
+<span class="sourceLineNo">671</span>        LdapUtils.storeNotNull(attrs, "dicomIssuerOfServiceEpisodeID",<a name="line.671"></a>
+<span class="sourceLineNo">672</span>                device.getIssuerOfServiceEpisodeID());<a name="line.672"></a>
+<span class="sourceLineNo">673</span>        LdapUtils.storeNotNull(attrs, "dicomIssuerOfContainerIdentifier",<a name="line.673"></a>
+<span class="sourceLineNo">674</span>                device.getIssuerOfContainerIdentifier());<a name="line.674"></a>
+<span class="sourceLineNo">675</span>        LdapUtils.storeNotNull(attrs, "dicomIssuerOfSpecimenIdentifier",<a name="line.675"></a>
+<span class="sourceLineNo">676</span>                device.getIssuerOfSpecimenIdentifier());<a name="line.676"></a>
+<span class="sourceLineNo">677</span>        LdapUtils.storeNotEmpty(attrs, "dicomInstitutionName",<a name="line.677"></a>
+<span class="sourceLineNo">678</span>                device.getInstitutionNames());<a name="line.678"></a>
+<span class="sourceLineNo">679</span>        LdapUtils.storeNotEmpty(attrs, "dicomInstitutionCode",<a name="line.679"></a>
+<span class="sourceLineNo">680</span>                device.getInstitutionCodes());<a name="line.680"></a>
+<span class="sourceLineNo">681</span>        LdapUtils.storeNotEmpty(attrs, "dicomInstitutionAddress",<a name="line.681"></a>
+<span class="sourceLineNo">682</span>                device.getInstitutionAddresses());<a name="line.682"></a>
+<span class="sourceLineNo">683</span>        LdapUtils.storeNotEmpty(attrs, "dicomInstitutionDepartmentName",<a name="line.683"></a>
+<span class="sourceLineNo">684</span>                device.getInstitutionalDepartmentNames());<a name="line.684"></a>
+<span class="sourceLineNo">685</span>        LdapUtils.storeNotEmpty(attrs, "dicomPrimaryDeviceType",<a name="line.685"></a>
+<span class="sourceLineNo">686</span>                device.getPrimaryDeviceTypes());<a name="line.686"></a>
+<span class="sourceLineNo">687</span>        LdapUtils.storeNotEmpty(attrs, "dicomRelatedDeviceReference",<a name="line.687"></a>
+<span class="sourceLineNo">688</span>                device.getRelatedDeviceRefs());<a name="line.688"></a>
+<span class="sourceLineNo">689</span>        LdapUtils.storeNotEmpty(attrs, "dicomAuthorizedNodeCertificateReference",<a name="line.689"></a>
+<span class="sourceLineNo">690</span>                device.getAuthorizedNodeCertificateRefs());<a name="line.690"></a>
+<span class="sourceLineNo">691</span>        LdapUtils.storeNotEmpty(attrs, "dicomThisNodeCertificateReference",<a name="line.691"></a>
+<span class="sourceLineNo">692</span>                device.getThisNodeCertificateRefs());<a name="line.692"></a>
+<span class="sourceLineNo">693</span>        storeNotEmpty(attrs, "dicomVendorData", device.getVendorData());<a name="line.693"></a>
+<span class="sourceLineNo">694</span>        LdapUtils.storeBoolean(attrs, "dicomInstalled", device.isInstalled());<a name="line.694"></a>
+<span class="sourceLineNo">695</span>        if (!extended)<a name="line.695"></a>
+<span class="sourceLineNo">696</span>            return attrs;<a name="line.696"></a>
+<span class="sourceLineNo">697</span><a name="line.697"></a>
+<span class="sourceLineNo">698</span>        objectclass.add("dcmDevice");<a name="line.698"></a>
+<span class="sourceLineNo">699</span>        LdapUtils.storeNotDef(attrs, "dcmLimitOpenAssociations", device.getLimitOpenAssociations(), 0);<a name="line.699"></a>
+<span class="sourceLineNo">700</span>        LdapUtils.storeNotNull(attrs, "dcmTrustStoreURL", device.getTrustStoreURL());<a name="line.700"></a>
+<span class="sourceLineNo">701</span>        LdapUtils.storeNotNull(attrs, "dcmTrustStoreType", device.getTrustStoreType());<a name="line.701"></a>
+<span class="sourceLineNo">702</span>        LdapUtils.storeNotNull(attrs, "dcmTrustStorePin", device.getTrustStorePin());<a name="line.702"></a>
+<span class="sourceLineNo">703</span>        LdapUtils.storeNotNull(attrs, "dcmTrustStorePinProperty", device.getTrustStorePinProperty());<a name="line.703"></a>
+<span class="sourceLineNo">704</span>        LdapUtils.storeNotNull(attrs, "dcmKeyStoreURL", device.getKeyStoreURL());<a name="line.704"></a>
+<span class="sourceLineNo">705</span>        LdapUtils.storeNotNull(attrs, "dcmKeyStoreType", device.getKeyStoreType());<a name="line.705"></a>
+<span class="sourceLineNo">706</span>        LdapUtils.storeNotNull(attrs, "dcmKeyStorePin", device.getKeyStorePin());<a name="line.706"></a>
+<span class="sourceLineNo">707</span>        LdapUtils.storeNotNull(attrs, "dcmKeyStorePinProperty", device.getKeyStorePinProperty());<a name="line.707"></a>
+<span class="sourceLineNo">708</span>        LdapUtils.storeNotNull(attrs, "dcmKeyStoreKeyPin", device.getKeyStoreKeyPin());<a name="line.708"></a>
+<span class="sourceLineNo">709</span>        LdapUtils.storeNotNull(attrs, "dcmKeyStoreKeyPinProperty", device.getKeyStoreKeyPinProperty());<a name="line.709"></a>
+<span class="sourceLineNo">710</span>        for (LdapDicomConfigurationExtension ext : extensions)<a name="line.710"></a>
+<span class="sourceLineNo">711</span>            ext.storeTo(device, attrs);<a name="line.711"></a>
+<span class="sourceLineNo">712</span>        return attrs;<a name="line.712"></a>
+<span class="sourceLineNo">713</span>    }<a name="line.713"></a>
+<span class="sourceLineNo">714</span><a name="line.714"></a>
+<span class="sourceLineNo">715</span>    private Attributes storeTo(Connection conn, Attributes attrs) {<a name="line.715"></a>
+<span class="sourceLineNo">716</span>        BasicAttribute objectclass = new BasicAttribute("objectclass", "dicomNetworkConnection");<a name="line.716"></a>
+<span class="sourceLineNo">717</span>        attrs.put(objectclass);<a name="line.717"></a>
+<span class="sourceLineNo">718</span>        LdapUtils.storeNotNull(attrs, "cn", conn.getCommonName());<a name="line.718"></a>
+<span class="sourceLineNo">719</span>        LdapUtils.storeNotNull(attrs, "dicomHostname", conn.getHostname());<a name="line.719"></a>
+<span class="sourceLineNo">720</span>        LdapUtils.storeNotDef(attrs, "dicomPort", conn.getPort(), Connection.NOT_LISTENING);<a name="line.720"></a>
+<span class="sourceLineNo">721</span>        LdapUtils.storeNotEmpty(attrs, "dicomTLSCipherSuite", conn.getTlsCipherSuites());<a name="line.721"></a>
+<span class="sourceLineNo">722</span>        LdapUtils.storeNotNull(attrs, "dicomInstalled", conn.getInstalled());<a name="line.722"></a>
+<span class="sourceLineNo">723</span>        if (!extended)<a name="line.723"></a>
+<span class="sourceLineNo">724</span>            return attrs;<a name="line.724"></a>
+<span class="sourceLineNo">725</span><a name="line.725"></a>
+<span class="sourceLineNo">726</span>        objectclass.add("dcmNetworkConnection");<a name="line.726"></a>
+<span class="sourceLineNo">727</span>        LdapUtils.storeNotNull(attrs, "dcmProtocol", <a name="line.727"></a>
+<span class="sourceLineNo">728</span>                StringUtils.nullify(conn.getProtocol(), Protocol.DICOM));<a name="line.728"></a>
+<span class="sourceLineNo">729</span>        LdapUtils.storeNotNull(attrs, "dcmHTTPProxy", conn.getHttpProxy());<a name="line.729"></a>
+<span class="sourceLineNo">730</span>        LdapUtils.storeNotEmpty(attrs, "dcmBlacklistedHostname", conn.getBlacklist());<a name="line.730"></a>
+<span class="sourceLineNo">731</span>        LdapUtils.storeNotDef(attrs, "dcmTCPBacklog",<a name="line.731"></a>
+<span class="sourceLineNo">732</span>                conn.getBacklog(), Connection.DEF_BACKLOG);<a name="line.732"></a>
+<span class="sourceLineNo">733</span>        LdapUtils.storeNotDef(attrs, "dcmTCPConnectTimeout",<a name="line.733"></a>
+<span class="sourceLineNo">734</span>                conn.getConnectTimeout(), Connection.NO_TIMEOUT);<a name="line.734"></a>
+<span class="sourceLineNo">735</span>        LdapUtils.storeNotDef(attrs, "dcmAARQTimeout",<a name="line.735"></a>
+<span class="sourceLineNo">736</span>                conn.getRequestTimeout(), Connection.NO_TIMEOUT);<a name="line.736"></a>
+<span class="sourceLineNo">737</span>        LdapUtils.storeNotDef(attrs, "dcmAAACTimeout",<a name="line.737"></a>
+<span class="sourceLineNo">738</span>                conn.getAcceptTimeout(), Connection.NO_TIMEOUT);<a name="line.738"></a>
+<span class="sourceLineNo">739</span>        LdapUtils.storeNotDef(attrs, "dcmARRPTimeout",<a name="line.739"></a>
+<span class="sourceLineNo">740</span>                conn.getReleaseTimeout(), Connection.NO_TIMEOUT);<a name="line.740"></a>
+<span class="sourceLineNo">741</span>        LdapUtils.storeNotDef(attrs, "dcmResponseTimeout",<a name="line.741"></a>
+<span class="sourceLineNo">742</span>                conn.getResponseTimeout(), Connection.NO_TIMEOUT);<a name="line.742"></a>
+<span class="sourceLineNo">743</span>        LdapUtils.storeNotDef(attrs, "dcmRetrieveTimeout",<a name="line.743"></a>
+<span class="sourceLineNo">744</span>                conn.getRetrieveTimeout(), Connection.NO_TIMEOUT);<a name="line.744"></a>
+<span class="sourceLineNo">745</span>        LdapUtils.storeNotDef(attrs, "dcmIdleTimeout",<a name="line.745"></a>
+<span class="sourceLineNo">746</span>                conn.getIdleTimeout(), Connection.NO_TIMEOUT);<a name="line.746"></a>
+<span class="sourceLineNo">747</span>        LdapUtils.storeNotDef(attrs, "dcmTCPCloseDelay",<a name="line.747"></a>
+<span class="sourceLineNo">748</span>                conn.getSocketCloseDelay(), Connection.DEF_SOCKETDELAY);<a name="line.748"></a>
+<span class="sourceLineNo">749</span>        LdapUtils.storeNotDef(attrs, "dcmTCPSendBufferSize",<a name="line.749"></a>
+<span class="sourceLineNo">750</span>                conn.getSendBufferSize(), Connection.DEF_BUFFERSIZE);<a name="line.750"></a>
+<span class="sourceLineNo">751</span>        LdapUtils.storeNotDef(attrs, "dcmTCPReceiveBufferSize",<a name="line.751"></a>
+<span class="sourceLineNo">752</span>                conn.getReceiveBufferSize(), Connection.DEF_BUFFERSIZE);<a name="line.752"></a>
+<span class="sourceLineNo">753</span>        LdapUtils.storeNotDef(attrs, "dcmTCPNoDelay", conn.isTcpNoDelay(), true);<a name="line.753"></a>
+<span class="sourceLineNo">754</span>        LdapUtils.storeNotDef(attrs, "dcmSendPDULength",<a name="line.754"></a>
+<span class="sourceLineNo">755</span>                conn.getSendPDULength(), Connection.DEF_MAX_PDU_LENGTH);<a name="line.755"></a>
+<span class="sourceLineNo">756</span>        LdapUtils.storeNotDef(attrs, "dcmReceivePDULength",<a name="line.756"></a>
+<span class="sourceLineNo">757</span>                conn.getReceivePDULength(), Connection.DEF_MAX_PDU_LENGTH);<a name="line.757"></a>
+<span class="sourceLineNo">758</span>        LdapUtils.storeNotDef(attrs, "dcmMaxOpsPerformed",<a name="line.758"></a>
+<span class="sourceLineNo">759</span>                conn.getMaxOpsPerformed(), Connection.SYNCHRONOUS_MODE);<a name="line.759"></a>
+<span class="sourceLineNo">760</span>        LdapUtils.storeNotDef(attrs, "dcmMaxOpsInvoked",<a name="line.760"></a>
+<span class="sourceLineNo">761</span>                conn.getMaxOpsInvoked(), Connection.SYNCHRONOUS_MODE);<a name="line.761"></a>
+<span class="sourceLineNo">762</span>        LdapUtils.storeNotDef(attrs, "dcmPackPDV", conn.isPackPDV(), true);<a name="line.762"></a>
+<span class="sourceLineNo">763</span>        if (conn.isTls()) {<a name="line.763"></a>
+<span class="sourceLineNo">764</span>            LdapUtils.storeNotEmpty(attrs, "dcmTLSProtocol", conn.getTlsProtocols());<a name="line.764"></a>
+<span class="sourceLineNo">765</span>            LdapUtils.storeNotDef(attrs, "dcmTLSNeedClientAuth", conn.isTlsNeedClientAuth(), true);<a name="line.765"></a>
+<span class="sourceLineNo">766</span>        }<a name="line.766"></a>
+<span class="sourceLineNo">767</span>        return attrs;<a name="line.767"></a>
+<span class="sourceLineNo">768</span>    }<a name="line.768"></a>
+<span class="sourceLineNo">769</span><a name="line.769"></a>
+<span class="sourceLineNo">770</span>    private Attributes storeTo(ApplicationEntity ae, String deviceDN, Attributes attrs) {<a name="line.770"></a>
+<span class="sourceLineNo">771</span>        BasicAttribute objectclass = new BasicAttribute("objectclass", "dicomNetworkAE");<a name="line.771"></a>
+<span class="sourceLineNo">772</span>        attrs.put(objectclass);<a name="line.772"></a>
+<span class="sourceLineNo">773</span>        LdapUtils.storeNotNull(attrs, "dicomAETitle", ae.getAETitle());<a name="line.773"></a>
+<span class="sourceLineNo">774</span>        LdapUtils.storeNotNull(attrs, "dicomDescription", ae.getDescription());<a name="line.774"></a>
+<span class="sourceLineNo">775</span>        storeNotEmpty(attrs, "dicomVendorData", ae.getVendorData());<a name="line.775"></a>
+<span class="sourceLineNo">776</span>        LdapUtils.storeNotEmpty(attrs, "dicomApplicationCluster", ae.getApplicationClusters());<a name="line.776"></a>
+<span class="sourceLineNo">777</span>        LdapUtils.storeNotEmpty(attrs, "dicomPreferredCallingAETitle", ae.getPreferredCallingAETitles());<a name="line.777"></a>
+<span class="sourceLineNo">778</span>        LdapUtils.storeNotEmpty(attrs, "dicomPreferredCalledAETitle", ae.getPreferredCalledAETitles());<a name="line.778"></a>
+<span class="sourceLineNo">779</span>        LdapUtils.storeBoolean(attrs, "dicomAssociationInitiator", ae.isAssociationInitiator());<a name="line.779"></a>
+<span class="sourceLineNo">780</span>        LdapUtils.storeBoolean(attrs, "dicomAssociationAcceptor",  ae.isAssociationAcceptor());<a name="line.780"></a>
+<span class="sourceLineNo">781</span>        LdapUtils.storeConnRefs(attrs, ae.getConnections(), deviceDN);<a name="line.781"></a>
+<span class="sourceLineNo">782</span>        LdapUtils.storeNotEmpty(attrs, "dicomSupportedCharacterSet", ae.getSupportedCharacterSets());<a name="line.782"></a>
+<span class="sourceLineNo">783</span>        LdapUtils.storeNotNull(attrs, "dicomInstalled", ae.getInstalled());<a name="line.783"></a>
+<span class="sourceLineNo">784</span>        if (!extended)<a name="line.784"></a>
+<span class="sourceLineNo">785</span>            return attrs;<a name="line.785"></a>
+<span class="sourceLineNo">786</span><a name="line.786"></a>
+<span class="sourceLineNo">787</span>        objectclass.add("dcmNetworkAE");<a name="line.787"></a>
+<span class="sourceLineNo">788</span>        LdapUtils.storeNotEmpty(attrs, "dcmAcceptedCallingAETitle", ae.getAcceptedCallingAETitles());<a name="line.788"></a>
+<span class="sourceLineNo">789</span>        for (LdapDicomConfigurationExtension ext : extensions)<a name="line.789"></a>
+<span class="sourceLineNo">790</span>            ext.storeTo(ae, attrs);<a name="line.790"></a>
+<span class="sourceLineNo">791</span>        return attrs;<a name="line.791"></a>
+<span class="sourceLineNo">792</span>    }<a name="line.792"></a>
+<span class="sourceLineNo">793</span><a name="line.793"></a>
+<span class="sourceLineNo">794</span>    private Attributes storeTo(TransferCapability tc, Attributes attrs) {<a name="line.794"></a>
+<span class="sourceLineNo">795</span>        BasicAttribute objectclass = new BasicAttribute("objectclass", "dicomTransferCapability");<a name="line.795"></a>
+<span class="sourceLineNo">796</span>        attrs.put(objectclass);<a name="line.796"></a>
+<span class="sourceLineNo">797</span>        LdapUtils.storeNotNull(attrs, "cn", tc.getCommonName());<a name="line.797"></a>
+<span class="sourceLineNo">798</span>        LdapUtils.storeNotNull(attrs, "dicomSOPClass", tc.getSopClass());<a name="line.798"></a>
+<span class="sourceLineNo">799</span>        LdapUtils.storeNotNull(attrs, "dicomTransferRole", tc.getRole());<a name="line.799"></a>
+<span class="sourceLineNo">800</span>        LdapUtils.storeNotEmpty(attrs, "dicomTransferSyntax", tc.getTransferSyntaxes());<a name="line.800"></a>
+<span class="sourceLineNo">801</span>        if (!extended)<a name="line.801"></a>
+<span class="sourceLineNo">802</span>            return attrs;<a name="line.802"></a>
+<span class="sourceLineNo">803</span><a name="line.803"></a>
+<span class="sourceLineNo">804</span>        objectclass.add("dcmTransferCapability");<a name="line.804"></a>
+<span class="sourceLineNo">805</span>        EnumSet&lt;QueryOption&gt; queryOpts = tc.getQueryOptions();<a name="line.805"></a>
+<span class="sourceLineNo">806</span>        if (queryOpts != null) {<a name="line.806"></a>
+<span class="sourceLineNo">807</span>            LdapUtils.storeNotDef(attrs, "dcmRelationalQueries",<a name="line.807"></a>
+<span class="sourceLineNo">808</span>                    queryOpts.contains(QueryOption.RELATIONAL), false);<a name="line.808"></a>
+<span class="sourceLineNo">809</span>            LdapUtils.storeNotDef(attrs, "dcmCombinedDateTimeMatching",<a name="line.809"></a>
+<span class="sourceLineNo">810</span>                    queryOpts.contains(QueryOption.DATETIME), false);<a name="line.810"></a>
+<span class="sourceLineNo">811</span>            LdapUtils.storeNotDef(attrs, "dcmFuzzySemanticMatching",<a name="line.811"></a>
+<span class="sourceLineNo">812</span>                    queryOpts.contains(QueryOption.FUZZY), false);<a name="line.812"></a>
+<span class="sourceLineNo">813</span>            LdapUtils.storeNotDef(attrs, "dcmTimezoneQueryAdjustment",<a name="line.813"></a>
+<span class="sourceLineNo">814</span>                    queryOpts.contains(QueryOption.TIMEZONE), false);<a name="line.814"></a>
+<span class="sourceLineNo">815</span>        }<a name="line.815"></a>
+<span class="sourceLineNo">816</span>        StorageOptions storageOpts = tc.getStorageOptions();<a name="line.816"></a>
+<span class="sourceLineNo">817</span>        if (storageOpts != null) {<a name="line.817"></a>
+<span class="sourceLineNo">818</span>            LdapUtils.storeInt(attrs, "dcmStorageConformance",<a name="line.818"></a>
+<span class="sourceLineNo">819</span>                    storageOpts.getLevelOfSupport().ordinal());<a name="line.819"></a>
+<span class="sourceLineNo">820</span>            LdapUtils.storeInt(attrs, "dcmDigitalSignatureSupport",<a name="line.820"></a>
+<span class="sourceLineNo">821</span>                    storageOpts.getDigitalSignatureSupport().ordinal());<a name="line.821"></a>
+<span class="sourceLineNo">822</span>            LdapUtils.storeInt(attrs, "dcmDataElementCoercion",<a name="line.822"></a>
+<span class="sourceLineNo">823</span>                    storageOpts.getElementCoercion().ordinal());<a name="line.823"></a>
+<span class="sourceLineNo">824</span>        }<a name="line.824"></a>
+<span class="sourceLineNo">825</span>        return attrs;<a name="line.825"></a>
+<span class="sourceLineNo">826</span>    }<a name="line.826"></a>
+<span class="sourceLineNo">827</span><a name="line.827"></a>
+<span class="sourceLineNo">828</span>    @Override<a name="line.828"></a>
+<span class="sourceLineNo">829</span>    public synchronized void persistCertificates(String dn, X509Certificate... certs)<a name="line.829"></a>
+<span class="sourceLineNo">830</span>            throws ConfigurationException {<a name="line.830"></a>
+<span class="sourceLineNo">831</span>        try {<a name="line.831"></a>
+<span class="sourceLineNo">832</span>            storeCertificates(dn, certs);<a name="line.832"></a>
+<span class="sourceLineNo">833</span>        } catch (NameNotFoundException e) {<a name="line.833"></a>
+<span class="sourceLineNo">834</span>            throw new ConfigurationNotFoundException(e);<a name="line.834"></a>
+<span class="sourceLineNo">835</span>        } catch (NamingException e) {<a name="line.835"></a>
+<span class="sourceLineNo">836</span>            throw new ConfigurationException(e);<a name="line.836"></a>
+<span class="sourceLineNo">837</span>        } catch (CertificateEncodingException e) {<a name="line.837"></a>
+<span class="sourceLineNo">838</span>            throw new ConfigurationException(e);<a name="line.838"></a>
+<span class="sourceLineNo">839</span>        }<a name="line.839"></a>
+<span class="sourceLineNo">840</span>    }<a name="line.840"></a>
+<span class="sourceLineNo">841</span><a name="line.841"></a>
+<span class="sourceLineNo">842</span>    private void storeCertificates(String dn, X509Certificate... certs)<a name="line.842"></a>
+<span class="sourceLineNo">843</span>            throws CertificateEncodingException, NamingException {<a name="line.843"></a>
+<span class="sourceLineNo">844</span>        byte[][] vals = new byte[certs.length][];<a name="line.844"></a>
+<span class="sourceLineNo">845</span>        for (int i = 0; i &lt; vals.length; i++)<a name="line.845"></a>
+<span class="sourceLineNo">846</span>            vals[i] = certs[i].getEncoded();<a name="line.846"></a>
+<span class="sourceLineNo">847</span>        Attributes attrs = ctx.getAttributes(dn,<a name="line.847"></a>
+<span class="sourceLineNo">848</span>                new String[] { "objectClass" } );<a name="line.848"></a>
+<span class="sourceLineNo">849</span>        ModificationItem replaceCert = new ModificationItem(<a name="line.849"></a>
+<span class="sourceLineNo">850</span>                DirContext.REPLACE_ATTRIBUTE, attr(userCertificate, vals ));<a name="line.850"></a>
+<span class="sourceLineNo">851</span>        ctx.modifyAttributes(dn, <a name="line.851"></a>
+<span class="sourceLineNo">852</span>                LdapUtils.hasObjectClass(attrs, pkiUser)<a name="line.852"></a>
+<span class="sourceLineNo">853</span>                     ? new ModificationItem[] { replaceCert }<a name="line.853"></a>
+<span class="sourceLineNo">854</span>                     : new ModificationItem[] {<a name="line.854"></a>
+<span class="sourceLineNo">855</span>                             new ModificationItem(<a name="line.855"></a>
+<span class="sourceLineNo">856</span>                                 DirContext.ADD_ATTRIBUTE,<a name="line.856"></a>
+<span class="sourceLineNo">857</span>                                 LdapUtils.attr("objectClass", pkiUser )),<a name="line.857"></a>
+<span class="sourceLineNo">858</span>                             replaceCert });<a name="line.858"></a>
+<span class="sourceLineNo">859</span>    }<a name="line.859"></a>
+<span class="sourceLineNo">860</span><a name="line.860"></a>
+<span class="sourceLineNo">861</span>    @Override<a name="line.861"></a>
+<span class="sourceLineNo">862</span>    public synchronized void removeCertificates(String dn) throws ConfigurationException {<a name="line.862"></a>
+<span class="sourceLineNo">863</span>        try {<a name="line.863"></a>
+<span class="sourceLineNo">864</span>            ModificationItem removeCert = new ModificationItem(<a name="line.864"></a>
+<span class="sourceLineNo">865</span>                    DirContext.REMOVE_ATTRIBUTE, new BasicAttribute(userCertificate));<a name="line.865"></a>
+<span class="sourceLineNo">866</span>            ctx.modifyAttributes(dn, new ModificationItem[] { removeCert });<a name="line.866"></a>
+<span class="sourceLineNo">867</span>        } catch (NameNotFoundException e) {<a name="line.867"></a>
+<span class="sourceLineNo">868</span>            throw new ConfigurationNotFoundException(e);<a name="line.868"></a>
+<span class="sourceLineNo">869</span>        } catch (NamingException e) {<a name="line.869"></a>
+<span class="sourceLineNo">870</span>            throw new ConfigurationException(e);<a name="line.870"></a>
+<span class="sourceLineNo">871</span>        }<a name="line.871"></a>
+<span class="sourceLineNo">872</span>    }<a name="line.872"></a>
+<span class="sourceLineNo">873</span><a name="line.873"></a>
+<span class="sourceLineNo">874</span>    @Override<a name="line.874"></a>
+<span class="sourceLineNo">875</span>    public synchronized X509Certificate[] findCertificates(String dn) throws ConfigurationException {<a name="line.875"></a>
+<span class="sourceLineNo">876</span>        try {<a name="line.876"></a>
+<span class="sourceLineNo">877</span>            return loadCertificates(dn);<a name="line.877"></a>
+<span class="sourceLineNo">878</span>        } catch (NameNotFoundException e) {<a name="line.878"></a>
+<span class="sourceLineNo">879</span>            throw new ConfigurationNotFoundException(e);<a name="line.879"></a>
+<span class="sourceLineNo">880</span>        } catch (NamingException e) {<a name="line.880"></a>
+<span class="sourceLineNo">881</span>            throw new ConfigurationException(e);<a name="line.881"></a>
+<span class="sourceLineNo">882</span>        } catch (CertificateException e) {<a name="line.882"></a>
+<span class="sourceLineNo">883</span>            throw new ConfigurationException(e);<a name="line.883"></a>
+<span class="sourceLineNo">884</span>        }<a name="line.884"></a>
+<span class="sourceLineNo">885</span>    }<a name="line.885"></a>
+<span class="sourceLineNo">886</span><a name="line.886"></a>
+<span class="sourceLineNo">887</span>    private X509Certificate[] loadCertificates(String dn)<a name="line.887"></a>
+<span class="sourceLineNo">888</span>            throws NamingException, CertificateException {<a name="line.888"></a>
+<span class="sourceLineNo">889</span>        Attributes attrs = ctx.getAttributes(dn, new String[] { userCertificate } );<a name="line.889"></a>
+<span class="sourceLineNo">890</span>        Attribute attr = attrs.get(userCertificate);<a name="line.890"></a>
+<span class="sourceLineNo">891</span>        if (attr == null)<a name="line.891"></a>
+<span class="sourceLineNo">892</span>            return EMPTY_X509_CERTIFICATES;<a name="line.892"></a>
+<span class="sourceLineNo">893</span>        CertificateFactory cf = CertificateFactory.getInstance("X509");<a name="line.893"></a>
+<span class="sourceLineNo">894</span>        X509Certificate[] certs = new X509Certificate[attr.size()];<a name="line.894"></a>
+<span class="sourceLineNo">895</span>        for (int i = 0; i &lt; certs.length; i++)<a name="line.895"></a>
+<span class="sourceLineNo">896</span>            certs[i] = (X509Certificate) cf.generateCertificate(<a name="line.896"></a>
+<span class="sourceLineNo">897</span>                    new ByteArrayInputStream((byte[]) attr.get(i)));<a name="line.897"></a>
+<span class="sourceLineNo">898</span><a name="line.898"></a>
+<span class="sourceLineNo">899</span>        return certs;<a name="line.899"></a>
+<span class="sourceLineNo">900</span>    }<a name="line.900"></a>
+<span class="sourceLineNo">901</span><a name="line.901"></a>
+<span class="sourceLineNo">902</span>    public Device loadDevice(String deviceDN) throws ConfigurationException {<a name="line.902"></a>
+<span class="sourceLineNo">903</span>        try {<a name="line.903"></a>
+<span class="sourceLineNo">904</span>            Attributes attrs = getAttributes(deviceDN);<a name="line.904"></a>
+<span class="sourceLineNo">905</span>            Device device = new Device(LdapUtils.stringValue(attrs.get("dicomDeviceName"), null));<a name="line.905"></a>
+<span class="sourceLineNo">906</span>            loadFrom(device, attrs);<a name="line.906"></a>
+<span class="sourceLineNo">907</span>            loadChilds(device, deviceDN);<a name="line.907"></a>
+<span class="sourceLineNo">908</span>            return device;<a name="line.908"></a>
+<span class="sourceLineNo">909</span>        } catch (NameNotFoundException e) {<a name="line.909"></a>
+<span class="sourceLineNo">910</span>            throw new ConfigurationNotFoundException(e);<a name="line.910"></a>
+<span class="sourceLineNo">911</span>        } catch (NamingException e) {<a name="line.911"></a>
+<span class="sourceLineNo">912</span>            throw new ConfigurationException(e);<a name="line.912"></a>
+<span class="sourceLineNo">913</span>        } catch (CertificateException e) {<a name="line.913"></a>
+<span class="sourceLineNo">914</span>            throw new ConfigurationException(e);<a name="line.914"></a>
+<span class="sourceLineNo">915</span>        }<a name="line.915"></a>
+<span class="sourceLineNo">916</span>    }<a name="line.916"></a>
+<span class="sourceLineNo">917</span><a name="line.917"></a>
+<span class="sourceLineNo">918</span>    public Attributes getAttributes(String name) throws NamingException {<a name="line.918"></a>
+<span class="sourceLineNo">919</span>        return ctx.getAttributes(name);<a name="line.919"></a>
+<span class="sourceLineNo">920</span>    }<a name="line.920"></a>
+<span class="sourceLineNo">921</span><a name="line.921"></a>
+<span class="sourceLineNo">922</span>    private void loadChilds(Device device, String deviceDN)<a name="line.922"></a>
+<span class="sourceLineNo">923</span>            throws NamingException, ConfigurationException {<a name="line.923"></a>
+<span class="sourceLineNo">924</span>        loadConnections(device, deviceDN);<a name="line.924"></a>
+<span class="sourceLineNo">925</span>        loadApplicationEntities(device, deviceDN);<a name="line.925"></a>
+<span class="sourceLineNo">926</span>        for (LdapDicomConfigurationExtension ext : extensions)<a name="line.926"></a>
+<span class="sourceLineNo">927</span>            ext.loadChilds(device, deviceDN);<a name="line.927"></a>
+<span class="sourceLineNo">928</span>    }<a name="line.928"></a>
+<span class="sourceLineNo">929</span><a name="line.929"></a>
+<span class="sourceLineNo">930</span>    private void loadFrom(TransferCapability tc, Attributes attrs) throws NamingException {<a name="line.930"></a>
+<span class="sourceLineNo">931</span>        tc.setCommonName(LdapUtils.stringValue(attrs.get("cn"), null));<a name="line.931"></a>
+<span class="sourceLineNo">932</span>        tc.setSopClass(LdapUtils.stringValue(attrs.get("dicomSOPClass"), null));<a name="line.932"></a>
+<span class="sourceLineNo">933</span>        tc.setRole(TransferCapability.Role.valueOf(<a name="line.933"></a>
+<span class="sourceLineNo">934</span>                LdapUtils.stringValue(attrs.get("dicomTransferRole"), null)));<a name="line.934"></a>
+<span class="sourceLineNo">935</span>        tc.setTransferSyntaxes(LdapUtils.stringArray(attrs.get("dicomTransferSyntax")));<a name="line.935"></a>
+<span class="sourceLineNo">936</span>        if (!LdapUtils.hasObjectClass(attrs, "dcmTransferCapability"))<a name="line.936"></a>
+<span class="sourceLineNo">937</span>            return;<a name="line.937"></a>
+<span class="sourceLineNo">938</span><a name="line.938"></a>
+<span class="sourceLineNo">939</span>        tc.setQueryOptions(toQueryOptions(attrs));<a name="line.939"></a>
+<span class="sourceLineNo">940</span>        tc.setStorageOptions(toStorageOptions(attrs));<a name="line.940"></a>
+<span class="sourceLineNo">941</span>    }<a name="line.941"></a>
+<span class="sourceLineNo">942</span><a name="line.942"></a>
+<span class="sourceLineNo">943</span>    private static EnumSet&lt;QueryOption&gt; toQueryOptions(Attributes attrs)<a name="line.943"></a>
+<span class="sourceLineNo">944</span>            throws NamingException {<a name="line.944"></a>
+<span class="sourceLineNo">945</span>        Attribute relational = attrs.get("dcmRelationalQueries");<a name="line.945"></a>
+<span class="sourceLineNo">946</span>        Attribute datetime = attrs.get("dcmCombinedDateTimeMatching");<a name="line.946"></a>
+<span class="sourceLineNo">947</span>        Attribute fuzzy = attrs.get("dcmFuzzySemanticMatching");<a name="line.947"></a>
+<span class="sourceLineNo">948</span>        Attribute timezone = attrs.get("dcmTimezoneQueryAdjustment");<a name="line.948"></a>
+<span class="sourceLineNo">949</span>        if (relational == null &amp;&amp; datetime == null &amp;&amp; fuzzy == null &amp;&amp; timezone == null)<a name="line.949"></a>
+<span class="sourceLineNo">950</span>            return null;<a name="line.950"></a>
+<span class="sourceLineNo">951</span>        EnumSet&lt;QueryOption&gt; opts = EnumSet.noneOf(QueryOption.class);<a name="line.951"></a>
+<span class="sourceLineNo">952</span>        if (LdapUtils.booleanValue(relational, false))<a name="line.952"></a>
+<span class="sourceLineNo">953</span>            opts.add(QueryOption.RELATIONAL);<a name="line.953"></a>
+<span class="sourceLineNo">954</span>        if (LdapUtils.booleanValue(datetime, false))<a name="line.954"></a>
+<span class="sourceLineNo">955</span>            opts.add(QueryOption.DATETIME);<a name="line.955"></a>
+<span class="sourceLineNo">956</span>        if (LdapUtils.booleanValue(fuzzy, false))<a name="line.956"></a>
+<span class="sourceLineNo">957</span>            opts.add(QueryOption.FUZZY);<a name="line.957"></a>
+<span class="sourceLineNo">958</span>        if (LdapUtils.booleanValue(timezone, false))<a name="line.958"></a>
+<span class="sourceLineNo">959</span>            opts.add(QueryOption.TIMEZONE);<a name="line.959"></a>
+<span class="sourceLineNo">960</span>        return opts ;<a name="line.960"></a>
+<span class="sourceLineNo">961</span>     }<a name="line.961"></a>
+<span class="sourceLineNo">962</span><a name="line.962"></a>
+<span class="sourceLineNo">963</span>    private static StorageOptions toStorageOptions(Attributes attrs) throws NamingException {<a name="line.963"></a>
+<span class="sourceLineNo">964</span>        Attribute levelOfSupport = attrs.get("dcmStorageConformance");<a name="line.964"></a>
+<span class="sourceLineNo">965</span>        Attribute signatureSupport = attrs.get("dcmDigitalSignatureSupport");<a name="line.965"></a>
+<span class="sourceLineNo">966</span>        Attribute coercion = attrs.get("dcmDataElementCoercion");<a name="line.966"></a>
+<span class="sourceLineNo">967</span>        if (levelOfSupport == null &amp;&amp; signatureSupport == null &amp;&amp; coercion == null)<a name="line.967"></a>
+<span class="sourceLineNo">968</span>            return null;<a name="line.968"></a>
+<span class="sourceLineNo">969</span>        StorageOptions opts = new StorageOptions();<a name="line.969"></a>
+<span class="sourceLineNo">970</span>        opts.setLevelOfSupport(<a name="line.970"></a>
+<span class="sourceLineNo">971</span>                StorageOptions.LevelOfSupport.valueOf(LdapUtils.intValue(levelOfSupport, 3)));<a name="line.971"></a>
+<span class="sourceLineNo">972</span>        opts.setDigitalSignatureSupport(<a name="line.972"></a>
+<span class="sourceLineNo">973</span>                StorageOptions.DigitalSignatureSupport.valueOf(LdapUtils.intValue(signatureSupport, 0)));<a name="line.973"></a>
+<span class="sourceLineNo">974</span>        opts.setElementCoercion(<a name="line.974"></a>
+<span class="sourceLineNo">975</span>                StorageOptions.ElementCoercion.valueOf(LdapUtils.intValue(coercion, 2)));<a name="line.975"></a>
+<span class="sourceLineNo">976</span>        return opts;<a name="line.976"></a>
+<span class="sourceLineNo">977</span>    }<a name="line.977"></a>
+<span class="sourceLineNo">978</span><a name="line.978"></a>
+<span class="sourceLineNo">979</span>    private void loadFrom(Device device, Attributes attrs)<a name="line.979"></a>
+<span class="sourceLineNo">980</span>            throws NamingException, CertificateException {<a name="line.980"></a>
+<span class="sourceLineNo">981</span>        device.setDescription(LdapUtils.stringValue(attrs.get("dicomDescription"), null));<a name="line.981"></a>
+<span class="sourceLineNo">982</span>        device.setManufacturer(LdapUtils.stringValue(attrs.get("dicomManufacturer"), null));<a name="line.982"></a>
+<span class="sourceLineNo">983</span>        device.setManufacturerModelName(LdapUtils.stringValue(attrs.get("dicomManufacturerModelName"), null));<a name="line.983"></a>
+<span class="sourceLineNo">984</span>        device.setSoftwareVersions(LdapUtils.stringArray(attrs.get("dicomSoftwareVersion")));<a name="line.984"></a>
+<span class="sourceLineNo">985</span>        device.setStationName(LdapUtils.stringValue(attrs.get("dicomStationName"), null));<a name="line.985"></a>
+<span class="sourceLineNo">986</span>        device.setDeviceSerialNumber(LdapUtils.stringValue(attrs.get("dicomDeviceSerialNumber"), null));<a name="line.986"></a>
+<span class="sourceLineNo">987</span>        device.setIssuerOfPatientID(<a name="line.987"></a>
+<span class="sourceLineNo">988</span>                issuerValue(attrs.get("dicomIssuerOfPatientID")));<a name="line.988"></a>
+<span class="sourceLineNo">989</span>        device.setIssuerOfAccessionNumber(<a name="line.989"></a>
+<span class="sourceLineNo">990</span>                issuerValue(attrs.get("dicomIssuerOfAccessionNumber")));<a name="line.990"></a>
+<span class="sourceLineNo">991</span>        device.setOrderPlacerIdentifier(<a name="line.991"></a>
+<span class="sourceLineNo">992</span>                issuerValue(attrs.get("dicomOrderPlacerIdentifier")));<a name="line.992"></a>
+<span class="sourceLineNo">993</span>        device.setOrderFillerIdentifier(<a name="line.993"></a>
+<span class="sourceLineNo">994</span>                issuerValue(attrs.get("dicomOrderFillerIdentifier")));<a name="line.994"></a>
+<span class="sourceLineNo">995</span>        device.setIssuerOfAdmissionID(<a name="line.995"></a>
+<span class="sourceLineNo">996</span>                issuerValue(attrs.get("dicomIssuerOfAdmissionID")));<a name="line.996"></a>
+<span class="sourceLineNo">997</span>        device.setIssuerOfServiceEpisodeID(<a name="line.997"></a>
+<span class="sourceLineNo">998</span>                issuerValue(attrs.get("dicomIssuerOfServiceEpisodeID")));<a name="line.998"></a>
+<span class="sourceLineNo">999</span>        device.setIssuerOfContainerIdentifier(<a name="line.999"></a>
+<span class="sourceLineNo">1000</span>                issuerValue(attrs.get("dicomIssuerOfContainerIdentifier")));<a name="line.1000"></a>
+<span class="sourceLineNo">1001</span>        device.setIssuerOfSpecimenIdentifier(<a name="line.1001"></a>
+<span class="sourceLineNo">1002</span>                issuerValue(attrs.get("dicomIssuerOfSpecimenIdentifier")));<a name="line.1002"></a>
+<span class="sourceLineNo">1003</span>        device.setInstitutionNames(LdapUtils.stringArray(attrs.get("dicomInstitutionName")));<a name="line.1003"></a>
+<span class="sourceLineNo">1004</span>        device.setInstitutionCodes(codeArray(attrs.get("dicomInstitutionCode")));<a name="line.1004"></a>
+<span class="sourceLineNo">1005</span>        device.setInstitutionAddresses(LdapUtils.stringArray(attrs.get("dicomInstitutionAddress")));<a name="line.1005"></a>
+<span class="sourceLineNo">1006</span>        device.setInstitutionalDepartmentNames(<a name="line.1006"></a>
+<span class="sourceLineNo">1007</span>                LdapUtils.stringArray(attrs.get("dicomInstitutionDepartmentName")));<a name="line.1007"></a>
+<span class="sourceLineNo">1008</span>        device.setPrimaryDeviceTypes(LdapUtils.stringArray(attrs.get("dicomPrimaryDeviceType")));<a name="line.1008"></a>
+<span class="sourceLineNo">1009</span>        device.setRelatedDeviceRefs(LdapUtils.stringArray(attrs.get("dicomRelatedDeviceReference")));<a name="line.1009"></a>
+<span class="sourceLineNo">1010</span>        for (String dn : LdapUtils.stringArray(attrs.get("dicomAuthorizedNodeCertificateReference")))<a name="line.1010"></a>
+<span class="sourceLineNo">1011</span>            device.setAuthorizedNodeCertificates(dn, loadCertificates(dn));<a name="line.1011"></a>
+<span class="sourceLineNo">1012</span>        for (String dn : LdapUtils.stringArray(attrs.get("dicomThisNodeCertificateReference")))<a name="line.1012"></a>
+<span class="sourceLineNo">1013</span>            device.setThisNodeCertificates(dn, loadCertificates(dn));<a name="line.1013"></a>
+<span class="sourceLineNo">1014</span>        device.setVendorData(byteArrays(attrs.get("dicomVendorData")));<a name="line.1014"></a>
+<span class="sourceLineNo">1015</span>        device.setInstalled(LdapUtils.booleanValue(attrs.get("dicomInstalled"), true));<a name="line.1015"></a>
+<span class="sourceLineNo">1016</span>        if (!LdapUtils.hasObjectClass(attrs, "dcmDevice"))<a name="line.1016"></a>
+<span class="sourceLineNo">1017</span>            return;<a name="line.1017"></a>
+<span class="sourceLineNo">1018</span>        <a name="line.1018"></a>
+<span class="sourceLineNo">1019</span>        device.setLimitOpenAssociations(<a name="line.1019"></a>
+<span class="sourceLineNo">1020</span>                LdapUtils.intValue(attrs.get("dcmLimitOpenAssociations"), 0));<a name="line.1020"></a>
+<span class="sourceLineNo">1021</span>        device.setTrustStoreURL(LdapUtils.stringValue(attrs.get("dcmTrustStoreURL"), null));<a name="line.1021"></a>
+<span class="sourceLineNo">1022</span>        device.setTrustStoreType(LdapUtils.stringValue(attrs.get("dcmTrustStoreType"), null));<a name="line.1022"></a>
+<span class="sourceLineNo">1023</span>        device.setTrustStorePin(LdapUtils.stringValue(attrs.get("dcmTrustStorePin"), null));<a name="line.1023"></a>
+<span class="sourceLineNo">1024</span>        device.setTrustStorePinProperty(<a name="line.1024"></a>
+<span class="sourceLineNo">1025</span>                LdapUtils.stringValue(attrs.get("dcmTrustStorePinProperty"), null));<a name="line.1025"></a>
+<span class="sourceLineNo">1026</span>        device.setKeyStoreURL(LdapUtils.stringValue(attrs.get("dcmKeyStoreURL"), null));<a name="line.1026"></a>
+<span class="sourceLineNo">1027</span>        device.setKeyStoreType(LdapUtils.stringValue(attrs.get("dcmKeyStoreType"), null));<a name="line.1027"></a>
+<span class="sourceLineNo">1028</span>        device.setKeyStorePin(LdapUtils.stringValue(attrs.get("dcmKeyStorePin"), null));<a name="line.1028"></a>
+<span class="sourceLineNo">1029</span>        device.setKeyStorePinProperty(<a name="line.1029"></a>
+<span class="sourceLineNo">1030</span>                LdapUtils.stringValue(attrs.get("dcmKeyStorePinProperty"), null));<a name="line.1030"></a>
+<span class="sourceLineNo">1031</span>        device.setKeyStoreKeyPin(LdapUtils.stringValue(attrs.get("dcmKeyStoreKeyPin"), null));<a name="line.1031"></a>
+<span class="sourceLineNo">1032</span>        device.setKeyStoreKeyPinProperty(<a name="line.1032"></a>
+<span class="sourceLineNo">1033</span>                LdapUtils.stringValue(attrs.get("dcmKeyStoreKeyPinProperty"), null));<a name="line.1033"></a>
+<span class="sourceLineNo">1034</span>        for (LdapDicomConfigurationExtension ext : extensions)<a name="line.1034"></a>
+<span class="sourceLineNo">1035</span>            ext.loadFrom(device, attrs);<a name="line.1035"></a>
+<span class="sourceLineNo">1036</span>    }<a name="line.1036"></a>
+<span class="sourceLineNo">1037</span><a name="line.1037"></a>
+<span class="sourceLineNo">1038</span>    private void loadConnections(Device device, String deviceDN) throws NamingException {<a name="line.1038"></a>
+<span class="sourceLineNo">1039</span>        NamingEnumeration&lt;SearchResult&gt; ne = <a name="line.1039"></a>
+<span class="sourceLineNo">1040</span>                search(deviceDN, "(objectclass=dicomNetworkConnection)");<a name="line.1040"></a>
+<span class="sourceLineNo">1041</span>        try {<a name="line.1041"></a>
+<span class="sourceLineNo">1042</span>            while (ne.hasMore()) {<a name="line.1042"></a>
+<span class="sourceLineNo">1043</span>                SearchResult sr = ne.next();<a name="line.1043"></a>
+<span class="sourceLineNo">1044</span>                Attributes attrs = sr.getAttributes();<a name="line.1044"></a>
+<span class="sourceLineNo">1045</span>                Connection conn = new Connection();<a name="line.1045"></a>
+<span class="sourceLineNo">1046</span>                loadFrom(conn, attrs);<a name="line.1046"></a>
+<span class="sourceLineNo">1047</span>                device.addConnection(conn);<a name="line.1047"></a>
+<span class="sourceLineNo">1048</span>            }<a name="line.1048"></a>
+<span class="sourceLineNo">1049</span>        } finally {<a name="line.1049"></a>
+<span class="sourceLineNo">1050</span>           LdapUtils.safeClose(ne);<a name="line.1050"></a>
+<span class="sourceLineNo">1051</span>        }<a name="line.1051"></a>
+<span class="sourceLineNo">1052</span>    }<a name="line.1052"></a>
+<span class="sourceLineNo">1053</span><a name="line.1053"></a>
+<span class="sourceLineNo">1054</span>    public NamingEnumeration&lt;SearchResult&gt; search(String dn, String filter)<a name="line.1054"></a>
+<span class="sourceLineNo">1055</span>            throws NamingException {<a name="line.1055"></a>
+<span class="sourceLineNo">1056</span>        return  search(dn, filter, (String[]) null);<a name="line.1056"></a>
+<span class="sourceLineNo">1057</span>    }<a name="line.1057"></a>
+<span class="sourceLineNo">1058</span><a name="line.1058"></a>
+<span class="sourceLineNo">1059</span>    private NamingEnumeration&lt;SearchResult&gt; search(String dn, String filter,<a name="line.1059"></a>
+<span class="sourceLineNo">1060</span>            String... attrs) throws NamingException {<a name="line.1060"></a>
+<span class="sourceLineNo">1061</span>        SearchControls ctls = new SearchControls();<a name="line.1061"></a>
+<span class="sourceLineNo">1062</span>        ctls.setSearchScope(SearchControls.ONELEVEL_SCOPE);<a name="line.1062"></a>
+<span class="sourceLineNo">1063</span>        ctls.setReturningObjFlag(false);<a name="line.1063"></a>
+<span class="sourceLineNo">1064</span>        ctls.setReturningAttributes(attrs);<a name="line.1064"></a>
+<span class="sourceLineNo">1065</span>        return ctx.search(dn, filter, ctls);<a name="line.1065"></a>
+<span class="sourceLineNo">1066</span>    }<a name="line.1066"></a>
+<span class="sourceLineNo">1067</span><a name="line.1067"></a>
+<span class="sourceLineNo">1068</span>    private void loadFrom(Connection conn, Attributes attrs) throws NamingException {<a name="line.1068"></a>
+<span class="sourceLineNo">1069</span>        conn.setCommonName(LdapUtils.stringValue(attrs.get("cn"), null));<a name="line.1069"></a>
+<span class="sourceLineNo">1070</span>        conn.setHostname(LdapUtils.stringValue(attrs.get("dicomHostname"), null));<a name="line.1070"></a>
+<span class="sourceLineNo">1071</span>        conn.setPort(LdapUtils.intValue(attrs.get("dicomPort"), Connection.NOT_LISTENING));<a name="line.1071"></a>
+<span class="sourceLineNo">1072</span>        conn.setTlsCipherSuites(LdapUtils.stringArray(attrs.get("dicomTLSCipherSuite")));<a name="line.1072"></a>
+<span class="sourceLineNo">1073</span>        conn.setInstalled(LdapUtils.booleanValue(attrs.get("dicomInstalled"), null));<a name="line.1073"></a>
+<span class="sourceLineNo">1074</span>        if (!LdapUtils.hasObjectClass(attrs, "dcmNetworkConnection"))<a name="line.1074"></a>
+<span class="sourceLineNo">1075</span>            return;<a name="line.1075"></a>
+<span class="sourceLineNo">1076</span><a name="line.1076"></a>
+<span class="sourceLineNo">1077</span>        conn.setProtocol(Protocol.valueOf(LdapUtils.stringValue(attrs.get("dcmProtocol"), "DICOM")));<a name="line.1077"></a>
+<span class="sourceLineNo">1078</span>        conn.setHttpProxy(LdapUtils.stringValue(attrs.get("dcmHTTPProxy"), null));<a name="line.1078"></a>
+<span class="sourceLineNo">1079</span>        conn.setBlacklist(LdapUtils.stringArray(attrs.get("dcmBlacklistedHostname")));<a name="line.1079"></a>
+<span class="sourceLineNo">1080</span>        conn.setBacklog(LdapUtils.intValue(attrs.get("dcmTCPBacklog"), Connection.DEF_BACKLOG));<a name="line.1080"></a>
+<span class="sourceLineNo">1081</span>        conn.setConnectTimeout(LdapUtils.intValue(attrs.get("dcmTCPConnectTimeout"),<a name="line.1081"></a>
+<span class="sourceLineNo">1082</span>                Connection.NO_TIMEOUT));<a name="line.1082"></a>
+<span class="sourceLineNo">1083</span>        conn.setRequestTimeout(LdapUtils.intValue(attrs.get("dcmAARQTimeout"),<a name="line.1083"></a>
+<span class="sourceLineNo">1084</span>                Connection.NO_TIMEOUT));<a name="line.1084"></a>
+<span class="sourceLineNo">1085</span>        conn.setAcceptTimeout(LdapUtils.intValue(attrs.get("dcmAAACTimeout"),<a name="line.1085"></a>
+<span class="sourceLineNo">1086</span>                Connection.NO_TIMEOUT));<a name="line.1086"></a>
+<span class="sourceLineNo">1087</span>        conn.setReleaseTimeout(LdapUtils.intValue(attrs.get("dcmARRPTimeout"),<a name="line.1087"></a>
+<span class="sourceLineNo">1088</span>                Connection.NO_TIMEOUT));<a name="line.1088"></a>
+<span class="sourceLineNo">1089</span>        conn.setResponseTimeout(LdapUtils.intValue(attrs.get("dcmResponseTimeout"),<a name="line.1089"></a>
+<span class="sourceLineNo">1090</span>                Connection.NO_TIMEOUT));<a name="line.1090"></a>
+<span class="sourceLineNo">1091</span>        conn.setRetrieveTimeout(LdapUtils.intValue(attrs.get("dcmRetrieveTimeout"),<a name="line.1091"></a>
+<span class="sourceLineNo">1092</span>                Connection.NO_TIMEOUT));<a name="line.1092"></a>
+<span class="sourceLineNo">1093</span>        conn.setIdleTimeout(LdapUtils.intValue(attrs.get("dcmIdleTimeout"),<a name="line.1093"></a>
+<span class="sourceLineNo">1094</span>                Connection.NO_TIMEOUT));<a name="line.1094"></a>
+<span class="sourceLineNo">1095</span>        conn.setSocketCloseDelay(LdapUtils.intValue(attrs.get("dcmTCPCloseDelay"),<a name="line.1095"></a>
+<span class="sourceLineNo">1096</span>                Connection.DEF_SOCKETDELAY));<a name="line.1096"></a>
+<span class="sourceLineNo">1097</span>        conn.setSendBufferSize(LdapUtils.intValue(attrs.get("dcmTCPSendBufferSize"),<a name="line.1097"></a>
+<span class="sourceLineNo">1098</span>                Connection.DEF_BUFFERSIZE));<a name="line.1098"></a>
+<span class="sourceLineNo">1099</span>        conn.setReceiveBufferSize(LdapUtils.intValue(attrs.get("dcmTCPReceiveBufferSize"),<a name="line.1099"></a>
+<span class="sourceLineNo">1100</span>                Connection.DEF_BUFFERSIZE));<a name="line.1100"></a>
+<span class="sourceLineNo">1101</span>        conn.setTcpNoDelay(LdapUtils.booleanValue(attrs.get("dcmTCPNoDelay"), true));<a name="line.1101"></a>
+<span class="sourceLineNo">1102</span>        conn.setTlsNeedClientAuth(LdapUtils.booleanValue(attrs.get("dcmTLSNeedClientAuth"), true));<a name="line.1102"></a>
+<span class="sourceLineNo">1103</span>        String[] tlsProtocols = LdapUtils.stringArray(attrs.get("dcmTLSProtocol"));<a name="line.1103"></a>
+<span class="sourceLineNo">1104</span>        if (tlsProtocols.length &gt; 0)<a name="line.1104"></a>
+<span class="sourceLineNo">1105</span>            conn.setTlsProtocols(tlsProtocols);<a name="line.1105"></a>
+<span class="sourceLineNo">1106</span>        conn.setSendPDULength(LdapUtils.intValue(attrs.get("dcmSendPDULength"),<a name="line.1106"></a>
+<span class="sourceLineNo">1107</span>                Connection.DEF_MAX_PDU_LENGTH));<a name="line.1107"></a>
+<span class="sourceLineNo">1108</span>        conn.setReceivePDULength(LdapUtils.intValue(attrs.get("dcmReceivePDULength"),<a name="line.1108"></a>
+<span class="sourceLineNo">1109</span>                Connection.DEF_MAX_PDU_LENGTH));<a name="line.1109"></a>
+<span class="sourceLineNo">1110</span>        conn.setMaxOpsPerformed(LdapUtils.intValue(attrs.get("dcmMaxOpsPerformed"),<a name="line.1110"></a>
+<span class="sourceLineNo">1111</span>                Connection.SYNCHRONOUS_MODE));<a name="line.1111"></a>
+<span class="sourceLineNo">1112</span>        conn.setMaxOpsInvoked(LdapUtils.intValue(attrs.get("dcmMaxOpsInvoked"),<a name="line.1112"></a>
+<span class="sourceLineNo">1113</span>                Connection.SYNCHRONOUS_MODE));<a name="line.1113"></a>
+<span class="sourceLineNo">1114</span>        conn.setPackPDV(LdapUtils.booleanValue(attrs.get("dcmPackPDV"), true));<a name="line.1114"></a>
+<span class="sourceLineNo">1115</span>    }<a name="line.1115"></a>
+<span class="sourceLineNo">1116</span><a name="line.1116"></a>
+<span class="sourceLineNo">1117</span>    private void loadApplicationEntities(Device device, String deviceDN)<a name="line.1117"></a>
+<span class="sourceLineNo">1118</span>            throws NamingException {<a name="line.1118"></a>
+<span class="sourceLineNo">1119</span>        NamingEnumeration&lt;SearchResult&gt; ne =<a name="line.1119"></a>
+<span class="sourceLineNo">1120</span>                search(deviceDN, "(objectclass=dicomNetworkAE)");<a name="line.1120"></a>
+<span class="sourceLineNo">1121</span>        try {<a name="line.1121"></a>
+<span class="sourceLineNo">1122</span>            while (ne.hasMore()) {<a name="line.1122"></a>
+<span class="sourceLineNo">1123</span>                device.addApplicationEntity(<a name="line.1123"></a>
+<span class="sourceLineNo">1124</span>                        loadApplicationEntity(ne.next(), deviceDN, device));<a name="line.1124"></a>
+<span class="sourceLineNo">1125</span>            }<a name="line.1125"></a>
+<span class="sourceLineNo">1126</span>        } finally {<a name="line.1126"></a>
+<span class="sourceLineNo">1127</span>           LdapUtils.safeClose(ne);<a name="line.1127"></a>
+<span class="sourceLineNo">1128</span>        }<a name="line.1128"></a>
+<span class="sourceLineNo">1129</span>    }<a name="line.1129"></a>
+<span class="sourceLineNo">1130</span><a name="line.1130"></a>
+<span class="sourceLineNo">1131</span>    private ApplicationEntity loadApplicationEntity(SearchResult sr,<a name="line.1131"></a>
+<span class="sourceLineNo">1132</span>            String deviceDN, Device device) throws NamingException {<a name="line.1132"></a>
+<span class="sourceLineNo">1133</span>        Attributes attrs = sr.getAttributes();<a name="line.1133"></a>
+<span class="sourceLineNo">1134</span>        ApplicationEntity ae = new ApplicationEntity(LdapUtils.stringValue(attrs.get("dicomAETitle"), null));<a name="line.1134"></a>
+<span class="sourceLineNo">1135</span>        loadFrom(ae, attrs);<a name="line.1135"></a>
+<span class="sourceLineNo">1136</span>        for (String connDN : LdapUtils.stringArray(attrs.get("dicomNetworkConnectionReference")))<a name="line.1136"></a>
+<span class="sourceLineNo">1137</span>            ae.addConnection(LdapUtils.findConnection(connDN, deviceDN, device));<a name="line.1137"></a>
+<span class="sourceLineNo">1138</span>        loadChilds(ae, sr.getNameInNamespace());<a name="line.1138"></a>
+<span class="sourceLineNo">1139</span>        return ae ;<a name="line.1139"></a>
+<span class="sourceLineNo">1140</span>    }<a name="line.1140"></a>
+<span class="sourceLineNo">1141</span><a name="line.1141"></a>
+<span class="sourceLineNo">1142</span>    private void loadFrom(ApplicationEntity ae, Attributes attrs) throws NamingException {<a name="line.1142"></a>
+<span class="sourceLineNo">1143</span>        ae.setDescription(LdapUtils.stringValue(attrs.get("dicomDescription"), null));<a name="line.1143"></a>
+<span class="sourceLineNo">1144</span>        ae.setVendorData(byteArrays(attrs.get("dicomVendorData")));<a name="line.1144"></a>
+<span class="sourceLineNo">1145</span>        ae.setApplicationClusters(LdapUtils.stringArray(attrs.get("dicomApplicationCluster")));<a name="line.1145"></a>
+<span class="sourceLineNo">1146</span>        ae.setPreferredCallingAETitles(LdapUtils.stringArray(attrs.get("dicomPreferredCallingAETitle")));<a name="line.1146"></a>
+<span class="sourceLineNo">1147</span>        ae.setPreferredCalledAETitles(LdapUtils.stringArray(attrs.get("dicomPreferredCalledAETitle")));<a name="line.1147"></a>
+<span class="sourceLineNo">1148</span>        ae.setAssociationInitiator(LdapUtils.booleanValue(attrs.get("dicomAssociationInitiator"), false));<a name="line.1148"></a>
+<span class="sourceLineNo">1149</span>        ae.setAssociationAcceptor(LdapUtils.booleanValue(attrs.get("dicomAssociationAcceptor"), false));<a name="line.1149"></a>
+<span class="sourceLineNo">1150</span>        ae.setSupportedCharacterSets(LdapUtils.stringArray(attrs.get("dicomSupportedCharacterSet")));<a name="line.1150"></a>
+<span class="sourceLineNo">1151</span>        ae.setInstalled(LdapUtils.booleanValue(attrs.get("dicomInstalled"), null));<a name="line.1151"></a>
+<span class="sourceLineNo">1152</span>        if (!LdapUtils.hasObjectClass(attrs, "dcmNetworkAE"))<a name="line.1152"></a>
+<span class="sourceLineNo">1153</span>            return;<a name="line.1153"></a>
+<span class="sourceLineNo">1154</span><a name="line.1154"></a>
+<span class="sourceLineNo">1155</span>        ae.setAcceptedCallingAETitles(LdapUtils.stringArray(attrs.get("dcmAcceptedCallingAETitle")));<a name="line.1155"></a>
+<span class="sourceLineNo">1156</span>        for (LdapDicomConfigurationExtension ext : extensions)<a name="line.1156"></a>
+<span class="sourceLineNo">1157</span>            ext.loadFrom(ae, attrs);<a name="line.1157"></a>
+<span class="sourceLineNo">1158</span>    }<a name="line.1158"></a>
+<span class="sourceLineNo">1159</span><a name="line.1159"></a>
+<span class="sourceLineNo">1160</span>    private void loadChilds(ApplicationEntity ae, String aeDN) throws NamingException {<a name="line.1160"></a>
+<span class="sourceLineNo">1161</span>        loadTransferCapabilities(ae, aeDN);<a name="line.1161"></a>
+<span class="sourceLineNo">1162</span>        for (LdapDicomConfigurationExtension ext : extensions)<a name="line.1162"></a>
+<span class="sourceLineNo">1163</span>            ext.loadChilds(ae, aeDN);<a name="line.1163"></a>
+<span class="sourceLineNo">1164</span>    }<a name="line.1164"></a>
+<span class="sourceLineNo">1165</span><a name="line.1165"></a>
+<span class="sourceLineNo">1166</span>    private void loadTransferCapabilities(ApplicationEntity ae, String aeDN)<a name="line.1166"></a>
+<span class="sourceLineNo">1167</span>            throws NamingException {<a name="line.1167"></a>
+<span class="sourceLineNo">1168</span>        NamingEnumeration&lt;SearchResult&gt; ne =<a name="line.1168"></a>
+<span class="sourceLineNo">1169</span>                search(aeDN, "(objectclass=dicomTransferCapability)");<a name="line.1169"></a>
+<span class="sourceLineNo">1170</span>        try {<a name="line.1170"></a>
+<span class="sourceLineNo">1171</span>            while (ne.hasMore())<a name="line.1171"></a>
+<span class="sourceLineNo">1172</span>                ae.addTransferCapability(loadTransferCapability(ne.next()));<a name="line.1172"></a>
+<span class="sourceLineNo">1173</span>        } finally {<a name="line.1173"></a>
+<span class="sourceLineNo">1174</span>           LdapUtils.safeClose(ne);<a name="line.1174"></a>
+<span class="sourceLineNo">1175</span>        }<a name="line.1175"></a>
+<span class="sourceLineNo">1176</span>    }<a name="line.1176"></a>
+<span class="sourceLineNo">1177</span><a name="line.1177"></a>
+<span class="sourceLineNo">1178</span>    private TransferCapability loadTransferCapability(SearchResult sr)<a name="line.1178"></a>
+<span class="sourceLineNo">1179</span>            throws NamingException {<a name="line.1179"></a>
+<span class="sourceLineNo">1180</span>        Attributes attrs = sr.getAttributes();<a name="line.1180"></a>
+<span class="sourceLineNo">1181</span>        TransferCapability tc = new TransferCapability();<a name="line.1181"></a>
+<span class="sourceLineNo">1182</span>        loadFrom(tc, attrs);<a name="line.1182"></a>
+<span class="sourceLineNo">1183</span>        return tc;<a name="line.1183"></a>
+<span class="sourceLineNo">1184</span>    }<a name="line.1184"></a>
+<span class="sourceLineNo">1185</span><a name="line.1185"></a>
+<span class="sourceLineNo">1186</span>    private List&lt;ModificationItem&gt; storeDiffs(Device a, Device b,<a name="line.1186"></a>
+<span class="sourceLineNo">1187</span>            List&lt;ModificationItem&gt; mods) {<a name="line.1187"></a>
+<span class="sourceLineNo">1188</span>        LdapUtils.storeDiff(mods, "dicomDescription",<a name="line.1188"></a>
+<span class="sourceLineNo">1189</span>                a.getDescription(),<a name="line.1189"></a>
+<span class="sourceLineNo">1190</span>                b.getDescription());<a name="line.1190"></a>
+<span class="sourceLineNo">1191</span>        LdapUtils.storeDiff(mods, "dicomManufacturer",<a name="line.1191"></a>
+<span class="sourceLineNo">1192</span>                a.getManufacturer(),<a name="line.1192"></a>
+<span class="sourceLineNo">1193</span>                b.getManufacturer());<a name="line.1193"></a>
+<span class="sourceLineNo">1194</span>        LdapUtils.storeDiff(mods, "dicomManufacturerModelName",<a name="line.1194"></a>
+<span class="sourceLineNo">1195</span>                a.getManufacturerModelName(),<a name="line.1195"></a>
+<span class="sourceLineNo">1196</span>                b.getManufacturerModelName());<a name="line.1196"></a>
+<span class="sourceLineNo">1197</span>        LdapUtils.storeDiff(mods, "dicomSoftwareVersion",<a name="line.1197"></a>
+<span class="sourceLineNo">1198</span>                a.getSoftwareVersions(),<a name="line.1198"></a>
+<span class="sourceLineNo">1199</span>                b.getSoftwareVersions());<a name="line.1199"></a>
+<span class="sourceLineNo">1200</span>        LdapUtils.storeDiff(mods, "dicomStationName",<a name="line.1200"></a>
+<span class="sourceLineNo">1201</span>                a.getStationName(),<a name="line.1201"></a>
+<span class="sourceLineNo">1202</span>                b.getStationName());<a name="line.1202"></a>
+<span class="sourceLineNo">1203</span>        LdapUtils.storeDiff(mods, "dicomDeviceSerialNumber",<a name="line.1203"></a>
+<span class="sourceLineNo">1204</span>                a.getDeviceSerialNumber(),<a name="line.1204"></a>
+<span class="sourceLineNo">1205</span>                b.getDeviceSerialNumber());<a name="line.1205"></a>
+<span class="sourceLineNo">1206</span>        LdapUtils.storeDiff(mods, "dicomIssuerOfPatientID",<a name="line.1206"></a>
+<span class="sourceLineNo">1207</span>                a.getIssuerOfPatientID(),<a name="line.1207"></a>
+<span class="sourceLineNo">1208</span>                b.getIssuerOfPatientID());<a name="line.1208"></a>
+<span class="sourceLineNo">1209</span>        LdapUtils.storeDiff(mods, "dicomIssuerOfAccessionNumber",<a name="line.1209"></a>
+<span class="sourceLineNo">1210</span>                a.getIssuerOfAccessionNumber(),<a name="line.1210"></a>
+<span class="sourceLineNo">1211</span>                b.getIssuerOfAccessionNumber());<a name="line.1211"></a>
+<span class="sourceLineNo">1212</span>        LdapUtils.storeDiff(mods, "dicomOrderPlacerIdentifier",<a name="line.1212"></a>
+<span class="sourceLineNo">1213</span>                a.getOrderPlacerIdentifier(),<a name="line.1213"></a>
+<span class="sourceLineNo">1214</span>                b.getOrderPlacerIdentifier());<a name="line.1214"></a>
+<span class="sourceLineNo">1215</span>        LdapUtils.storeDiff(mods, "dicomOrderFillerIdentifier",<a name="line.1215"></a>
+<span class="sourceLineNo">1216</span>                a.getOrderFillerIdentifier(),<a name="line.1216"></a>
+<span class="sourceLineNo">1217</span>                b.getOrderFillerIdentifier());<a name="line.1217"></a>
+<span class="sourceLineNo">1218</span>        LdapUtils.storeDiff(mods, "dicomIssuerOfAdmissionID",<a name="line.1218"></a>
+<span class="sourceLineNo">1219</span>                a.getIssuerOfAdmissionID(),<a name="line.1219"></a>
+<span class="sourceLineNo">1220</span>                b.getIssuerOfAdmissionID());<a name="line.1220"></a>
+<span class="sourceLineNo">1221</span>        LdapUtils.storeDiff(mods, "dicomIssuerOfServiceEpisodeID",<a name="line.1221"></a>
+<span class="sourceLineNo">1222</span>                a.getIssuerOfServiceEpisodeID(),<a name="line.1222"></a>
+<span class="sourceLineNo">1223</span>                b.getIssuerOfServiceEpisodeID());<a name="line.1223"></a>
+<span class="sourceLineNo">1224</span>        LdapUtils.storeDiff(mods, "dicomIssuerOfContainerIdentifier",<a name="line.1224"></a>
+<span class="sourceLineNo">1225</span>                a.getIssuerOfContainerIdentifier(),<a name="line.1225"></a>
+<span class="sourceLineNo">1226</span>                b.getIssuerOfContainerIdentifier());<a name="line.1226"></a>
+<span class="sourceLineNo">1227</span>        LdapUtils.storeDiff(mods, "dicomIssuerOfSpecimenIdentifier",<a name="line.1227"></a>
+<span class="sourceLineNo">1228</span>                a.getIssuerOfSpecimenIdentifier(),<a name="line.1228"></a>
+<span class="sourceLineNo">1229</span>                b.getIssuerOfSpecimenIdentifier());<a name="line.1229"></a>
+<span class="sourceLineNo">1230</span>        LdapUtils.storeDiff(mods, "dicomInstitutionName",<a name="line.1230"></a>
+<span class="sourceLineNo">1231</span>                a.getInstitutionNames(),<a name="line.1231"></a>
+<span class="sourceLineNo">1232</span>                b.getInstitutionNames());<a name="line.1232"></a>
+<span class="sourceLineNo">1233</span>        LdapUtils.storeDiff(mods, "dicomInstitutionCode",<a name="line.1233"></a>
+<span class="sourceLineNo">1234</span>                a.getInstitutionCodes(),<a name="line.1234"></a>
+<span class="sourceLineNo">1235</span>                b.getInstitutionCodes());<a name="line.1235"></a>
+<span class="sourceLineNo">1236</span>        LdapUtils.storeDiff(mods, "dicomInstitutionAddress",<a name="line.1236"></a>
+<span class="sourceLineNo">1237</span>                a.getInstitutionAddresses(),<a name="line.1237"></a>
+<span class="sourceLineNo">1238</span>                b.getInstitutionAddresses());<a name="line.1238"></a>
+<span class="sourceLineNo">1239</span>        LdapUtils.storeDiff(mods, "dicomInstitutionDepartmentName",<a name="line.1239"></a>
+<span class="sourceLineNo">1240</span>                a.getInstitutionalDepartmentNames(),<a name="line.1240"></a>
+<span class="sourceLineNo">1241</span>                b.getInstitutionalDepartmentNames());<a name="line.1241"></a>
+<span class="sourceLineNo">1242</span>        LdapUtils.storeDiff(mods, "dicomPrimaryDeviceType",<a name="line.1242"></a>
+<span class="sourceLineNo">1243</span>                a.getPrimaryDeviceTypes(),<a name="line.1243"></a>
+<span class="sourceLineNo">1244</span>                b.getPrimaryDeviceTypes());<a name="line.1244"></a>
+<span class="sourceLineNo">1245</span>        LdapUtils.storeDiff(mods, "dicomRelatedDeviceReference",<a name="line.1245"></a>
+<span class="sourceLineNo">1246</span>                a.getRelatedDeviceRefs(),<a name="line.1246"></a>
+<span class="sourceLineNo">1247</span>                b.getRelatedDeviceRefs());<a name="line.1247"></a>
+<span class="sourceLineNo">1248</span>        LdapUtils.storeDiff(mods, "dicomAuthorizedNodeCertificateReference",<a name="line.1248"></a>
+<span class="sourceLineNo">1249</span>                a.getAuthorizedNodeCertificateRefs(),<a name="line.1249"></a>
+<span class="sourceLineNo">1250</span>                b.getAuthorizedNodeCertificateRefs());<a name="line.1250"></a>
+<span class="sourceLineNo">1251</span>        LdapUtils.storeDiff(mods, "dicomThisNodeCertificateReference",<a name="line.1251"></a>
+<span class="sourceLineNo">1252</span>                a.getThisNodeCertificateRefs(),<a name="line.1252"></a>
+<span class="sourceLineNo">1253</span>                b.getThisNodeCertificateRefs());<a name="line.1253"></a>
+<span class="sourceLineNo">1254</span>        storeDiff(mods, "dicomVendorData",<a name="line.1254"></a>
+<span class="sourceLineNo">1255</span>                a.getVendorData(),<a name="line.1255"></a>
+<span class="sourceLineNo">1256</span>                b.getVendorData());<a name="line.1256"></a>
+<span class="sourceLineNo">1257</span>        LdapUtils.storeDiff(mods, "dicomInstalled",<a name="line.1257"></a>
+<span class="sourceLineNo">1258</span>                a.isInstalled(),<a name="line.1258"></a>
+<span class="sourceLineNo">1259</span>                b.isInstalled());<a name="line.1259"></a>
+<span class="sourceLineNo">1260</span>        if (!extended)<a name="line.1260"></a>
+<span class="sourceLineNo">1261</span>            return mods;<a name="line.1261"></a>
+<span class="sourceLineNo">1262</span><a name="line.1262"></a>
+<span class="sourceLineNo">1263</span>        LdapUtils.storeDiff(mods, "dcmLimitOpenAssociations",<a name="line.1263"></a>
+<span class="sourceLineNo">1264</span>                a.getLimitOpenAssociations(),<a name="line.1264"></a>
+<span class="sourceLineNo">1265</span>                b.getLimitOpenAssociations());<a name="line.1265"></a>
+<span class="sourceLineNo">1266</span>        LdapUtils.storeDiff(mods, "dcmTrustStoreURL",<a name="line.1266"></a>
+<span class="sourceLineNo">1267</span>                a.getTrustStoreURL(),<a name="line.1267"></a>
+<span class="sourceLineNo">1268</span>                b.getTrustStoreURL());<a name="line.1268"></a>
+<span class="sourceLineNo">1269</span>        LdapUtils.storeDiff(mods, "dcmTrustStoreType",<a name="line.1269"></a>
+<span class="sourceLineNo">1270</span>                a.getTrustStoreType(),<a name="line.1270"></a>
+<span class="sourceLineNo">1271</span>                b.getTrustStoreType());<a name="line.1271"></a>
+<span class="sourceLineNo">1272</span>        LdapUtils.storeDiff(mods, "dcmTrustStorePin",<a name="line.1272"></a>
+<span class="sourceLineNo">1273</span>                a.getTrustStorePin(),<a name="line.1273"></a>
+<span class="sourceLineNo">1274</span>                b.getTrustStorePin());<a name="line.1274"></a>
+<span class="sourceLineNo">1275</span>        LdapUtils.storeDiff(mods, "dcmTrustStorePinProperty",<a name="line.1275"></a>
+<span class="sourceLineNo">1276</span>                a.getTrustStorePinProperty(),<a name="line.1276"></a>
+<span class="sourceLineNo">1277</span>                b.getTrustStorePinProperty());<a name="line.1277"></a>
+<span class="sourceLineNo">1278</span>        LdapUtils.storeDiff(mods, "dcmKeyStoreURL",<a name="line.1278"></a>
+<span class="sourceLineNo">1279</span>                a.getKeyStoreURL(),<a name="line.1279"></a>
+<span class="sourceLineNo">1280</span>                b.getKeyStoreURL());<a name="line.1280"></a>
+<span class="sourceLineNo">1281</span>        LdapUtils.storeDiff(mods, "dcmKeyStoreType",<a name="line.1281"></a>
+<span class="sourceLineNo">1282</span>                a.getKeyStoreType(),<a name="line.1282"></a>
+<span class="sourceLineNo">1283</span>                b.getKeyStoreType());<a name="line.1283"></a>
+<span class="sourceLineNo">1284</span>        LdapUtils.storeDiff(mods, "dcmKeyStorePin",<a name="line.1284"></a>
+<span class="sourceLineNo">1285</span>                a.getKeyStorePin(),<a name="line.1285"></a>
+<span class="sourceLineNo">1286</span>                b.getKeyStorePin());<a name="line.1286"></a>
+<span class="sourceLineNo">1287</span>        LdapUtils.storeDiff(mods, "dcmKeyStorePinProperty",<a name="line.1287"></a>
+<span class="sourceLineNo">1288</span>                a.getKeyStorePinProperty(),<a name="line.1288"></a>
+<span class="sourceLineNo">1289</span>                b.getKeyStorePinProperty());<a name="line.1289"></a>
+<span class="sourceLineNo">1290</span>        LdapUtils.storeDiff(mods, "dcmKeyStoreKeyPin",<a name="line.1290"></a>
+<span class="sourceLineNo">1291</span>                a.getKeyStoreKeyPin(),<a name="line.1291"></a>
+<span class="sourceLineNo">1292</span>                b.getKeyStoreKeyPin());<a name="line.1292"></a>
+<span class="sourceLineNo">1293</span>        LdapUtils.storeDiff(mods, "dcmKeyStoreKeyPinProperty",<a name="line.1293"></a>
+<span class="sourceLineNo">1294</span>                a.getKeyStoreKeyPinProperty(),<a name="line.1294"></a>
+<span class="sourceLineNo">1295</span>                b.getKeyStoreKeyPinProperty());<a name="line.1295"></a>
+<span class="sourceLineNo">1296</span>        for (LdapDicomConfigurationExtension ext : extensions)<a name="line.1296"></a>
+<span class="sourceLineNo">1297</span>            ext.storeDiffs(a, b, mods);<a name="line.1297"></a>
+<span class="sourceLineNo">1298</span>        return mods;<a name="line.1298"></a>
+<span class="sourceLineNo">1299</span>    }<a name="line.1299"></a>
+<span class="sourceLineNo">1300</span><a name="line.1300"></a>
+<span class="sourceLineNo">1301</span>    private List&lt;ModificationItem&gt; storeDiffs(Connection a, Connection b,<a name="line.1301"></a>
+<span class="sourceLineNo">1302</span>            List&lt;ModificationItem&gt; mods) {<a name="line.1302"></a>
+<span class="sourceLineNo">1303</span>        LdapUtils.storeDiff(mods, "dicomHostname",<a name="line.1303"></a>
+<span class="sourceLineNo">1304</span>                a.getHostname(),<a name="line.1304"></a>
+<span class="sourceLineNo">1305</span>                b.getHostname());<a name="line.1305"></a>
+<span class="sourceLineNo">1306</span>        LdapUtils.storeDiff(mods, "dicomPort",<a name="line.1306"></a>
+<span class="sourceLineNo">1307</span>                a.getPort(),<a name="line.1307"></a>
+<span class="sourceLineNo">1308</span>                b.getPort(),<a name="line.1308"></a>
+<span class="sourceLineNo">1309</span>                Connection.NOT_LISTENING);<a name="line.1309"></a>
+<span class="sourceLineNo">1310</span>        LdapUtils.storeDiff(mods, "dicomTLSCipherSuite",<a name="line.1310"></a>
+<span class="sourceLineNo">1311</span>                a.getTlsCipherSuites(),<a name="line.1311"></a>
+<span class="sourceLineNo">1312</span>                b.getTlsCipherSuites());<a name="line.1312"></a>
+<span class="sourceLineNo">1313</span>        LdapUtils.storeDiff(mods, "dicomInstalled",<a name="line.1313"></a>
+<span class="sourceLineNo">1314</span>                a.getInstalled(),<a name="line.1314"></a>
+<span class="sourceLineNo">1315</span>                b.getInstalled());<a name="line.1315"></a>
+<span class="sourceLineNo">1316</span>        if (!extended)<a name="line.1316"></a>
+<span class="sourceLineNo">1317</span>            return mods;<a name="line.1317"></a>
+<span class="sourceLineNo">1318</span><a name="line.1318"></a>
+<span class="sourceLineNo">1319</span>        LdapUtils.storeDiff(mods, "dcmProtocol",<a name="line.1319"></a>
+<span class="sourceLineNo">1320</span>                StringUtils.nullify(a.getProtocol(), Protocol.DICOM),<a name="line.1320"></a>
+<span class="sourceLineNo">1321</span>                StringUtils.nullify(b.getProtocol(), Protocol.DICOM));<a name="line.1321"></a>
+<span class="sourceLineNo">1322</span>        LdapUtils.storeDiff(mods, "dcmHTTPProxy",<a name="line.1322"></a>
+<span class="sourceLineNo">1323</span>                a.getHttpProxy(),<a name="line.1323"></a>
+<span class="sourceLineNo">1324</span>                b.getHttpProxy());<a name="line.1324"></a>
+<span class="sourceLineNo">1325</span>        LdapUtils.storeDiff(mods, "dcmBlacklistedHostname",<a name="line.1325"></a>
+<span class="sourceLineNo">1326</span>                a.getBlacklist(),<a name="line.1326"></a>
+<span class="sourceLineNo">1327</span>                b.getBlacklist());<a name="line.1327"></a>
+<span class="sourceLineNo">1328</span>        LdapUtils.storeDiff(mods, "dcmTCPBacklog",<a name="line.1328"></a>
+<span class="sourceLineNo">1329</span>                a.getBacklog(),<a name="line.1329"></a>
+<span class="sourceLineNo">1330</span>                b.getBacklog(),<a name="line.1330"></a>
+<span class="sourceLineNo">1331</span>                Connection.DEF_BACKLOG);<a name="line.1331"></a>
+<span class="sourceLineNo">1332</span>        LdapUtils.storeDiff(mods, "dcmTCPConnectTimeout",<a name="line.1332"></a>
+<span class="sourceLineNo">1333</span>                a.getConnectTimeout(),<a name="line.1333"></a>
+<span class="sourceLineNo">1334</span>                b.getConnectTimeout(),<a name="line.1334"></a>
+<span class="sourceLineNo">1335</span>                Connection.NO_TIMEOUT);<a name="line.1335"></a>
+<span class="sourceLineNo">1336</span>        LdapUtils.storeDiff(mods, "dcmAARQTimeout",<a name="line.1336"></a>
+<span class="sourceLineNo">1337</span>                a.getRequestTimeout(),<a name="line.1337"></a>
+<span class="sourceLineNo">1338</span>                b.getRequestTimeout(),<a name="line.1338"></a>
+<span class="sourceLineNo">1339</span>                Connection.NO_TIMEOUT);<a name="line.1339"></a>
+<span class="sourceLineNo">1340</span>        LdapUtils.storeDiff(mods, "dcmAAACTimeout",<a name="line.1340"></a>
+<span class="sourceLineNo">1341</span>                a.getAcceptTimeout(),<a name="line.1341"></a>
+<span class="sourceLineNo">1342</span>                b.getAcceptTimeout(),<a name="line.1342"></a>
+<span class="sourceLineNo">1343</span>                Connection.NO_TIMEOUT);<a name="line.1343"></a>
+<span class="sourceLineNo">1344</span>        LdapUtils.storeDiff(mods, "dcmARRPTimeout",<a name="line.1344"></a>
+<span class="sourceLineNo">1345</span>                a.getReleaseTimeout(),<a name="line.1345"></a>
+<span class="sourceLineNo">1346</span>                b.getReleaseTimeout(),<a name="line.1346"></a>
+<span class="sourceLineNo">1347</span>                Connection.NO_TIMEOUT);<a name="line.1347"></a>
+<span class="sourceLineNo">1348</span>        LdapUtils.storeDiff(mods, "dcmResponseTimeout",<a name="line.1348"></a>
+<span class="sourceLineNo">1349</span>                a.getResponseTimeout(),<a name="line.1349"></a>
+<span class="sourceLineNo">1350</span>                b.getResponseTimeout(),<a name="line.1350"></a>
+<span class="sourceLineNo">1351</span>                Connection.NO_TIMEOUT);<a name="line.1351"></a>
+<span class="sourceLineNo">1352</span>        LdapUtils.storeDiff(mods, "dcmRetrieveTimeout",<a name="line.1352"></a>
+<span class="sourceLineNo">1353</span>                a.getRetrieveTimeout(),<a name="line.1353"></a>
+<span class="sourceLineNo">1354</span>                b.getRetrieveTimeout(),<a name="line.1354"></a>
+<span class="sourceLineNo">1355</span>                Connection.NO_TIMEOUT);<a name="line.1355"></a>
+<span class="sourceLineNo">1356</span>        LdapUtils.storeDiff(mods, "dcmIdleTimeout",<a name="line.1356"></a>
+<span class="sourceLineNo">1357</span>                a.getIdleTimeout(),<a name="line.1357"></a>
+<span class="sourceLineNo">1358</span>                b.getIdleTimeout(),<a name="line.1358"></a>
+<span class="sourceLineNo">1359</span>                Connection.NO_TIMEOUT);<a name="line.1359"></a>
+<span class="sourceLineNo">1360</span>        LdapUtils.storeDiff(mods, "dcmTCPCloseDelay",<a name="line.1360"></a>
+<span class="sourceLineNo">1361</span>                a.getSocketCloseDelay(),<a name="line.1361"></a>
+<span class="sourceLineNo">1362</span>                b.getSocketCloseDelay(),<a name="line.1362"></a>
+<span class="sourceLineNo">1363</span>                Connection.DEF_SOCKETDELAY);<a name="line.1363"></a>
+<span class="sourceLineNo">1364</span>        LdapUtils.storeDiff(mods, "dcmTCPSendBufferSize",<a name="line.1364"></a>
+<span class="sourceLineNo">1365</span>                a.getSendBufferSize(),<a name="line.1365"></a>
+<span class="sourceLineNo">1366</span>                b.getSendBufferSize(),<a name="line.1366"></a>
+<span class="sourceLineNo">1367</span>                Connection.DEF_BUFFERSIZE);<a name="line.1367"></a>
+<span class="sourceLineNo">1368</span>        LdapUtils.storeDiff(mods, "dcmTCPReceiveBufferSize",<a name="line.1368"></a>
+<span class="sourceLineNo">1369</span>                a.getReceiveBufferSize(),<a name="line.1369"></a>
+<span class="sourceLineNo">1370</span>                b.getReceiveBufferSize(),<a name="line.1370"></a>
+<span class="sourceLineNo">1371</span>                Connection.DEF_BUFFERSIZE);<a name="line.1371"></a>
+<span class="sourceLineNo">1372</span>        LdapUtils.storeDiff(mods, "dcmTCPNoDelay",<a name="line.1372"></a>
+<span class="sourceLineNo">1373</span>                a.isTcpNoDelay(),<a name="line.1373"></a>
+<span class="sourceLineNo">1374</span>                b.isTcpNoDelay(),<a name="line.1374"></a>
+<span class="sourceLineNo">1375</span>                true);<a name="line.1375"></a>
+<span class="sourceLineNo">1376</span>        LdapUtils.storeDiff(mods, "dcmTLSProtocol",<a name="line.1376"></a>
+<span class="sourceLineNo">1377</span>                a.isTls() ? a.getTlsProtocols() : StringUtils.EMPTY_STRING,<a name="line.1377"></a>
+<span class="sourceLineNo">1378</span>                b.isTls() ? b.getTlsProtocols() : StringUtils.EMPTY_STRING);<a name="line.1378"></a>
+<span class="sourceLineNo">1379</span>        LdapUtils.storeDiff(mods, "dcmTLSNeedClientAuth",<a name="line.1379"></a>
+<span class="sourceLineNo">1380</span>                !a.isTls() || a.isTlsNeedClientAuth(),<a name="line.1380"></a>
+<span class="sourceLineNo">1381</span>                !a.isTls() || a.isTlsNeedClientAuth(),<a name="line.1381"></a>
+<span class="sourceLineNo">1382</span>                true);<a name="line.1382"></a>
+<span class="sourceLineNo">1383</span>        LdapUtils.storeDiff(mods, "dcmSendPDULength",<a name="line.1383"></a>
+<span class="sourceLineNo">1384</span>                a.getSendPDULength(),<a name="line.1384"></a>
+<span class="sourceLineNo">1385</span>                b.getSendPDULength(),<a name="line.1385"></a>
+<span class="sourceLineNo">1386</span>                Connection.DEF_MAX_PDU_LENGTH);<a name="line.1386"></a>
+<span class="sourceLineNo">1387</span>        LdapUtils.storeDiff(mods, "dcmReceivePDULength",<a name="line.1387"></a>
+<span class="sourceLineNo">1388</span>                a.getReceivePDULength(),<a name="line.1388"></a>
+<span class="sourceLineNo">1389</span>                b.getReceivePDULength(),<a name="line.1389"></a>
+<span class="sourceLineNo">1390</span>                Connection.DEF_MAX_PDU_LENGTH);<a name="line.1390"></a>
+<span class="sourceLineNo">1391</span>        LdapUtils.storeDiff(mods, "dcmMaxOpsPerformed",<a name="line.1391"></a>
+<span class="sourceLineNo">1392</span>                a.getMaxOpsPerformed(),<a name="line.1392"></a>
+<span class="sourceLineNo">1393</span>                b.getMaxOpsPerformed(),<a name="line.1393"></a>
+<span class="sourceLineNo">1394</span>                Connection.SYNCHRONOUS_MODE);<a name="line.1394"></a>
+<span class="sourceLineNo">1395</span>        LdapUtils.storeDiff(mods, "dcmMaxOpsInvoked",<a name="line.1395"></a>
+<span class="sourceLineNo">1396</span>                a.getMaxOpsInvoked(),<a name="line.1396"></a>
+<span class="sourceLineNo">1397</span>                b.getMaxOpsInvoked(),<a name="line.1397"></a>
+<span class="sourceLineNo">1398</span>                Connection.SYNCHRONOUS_MODE);<a name="line.1398"></a>
+<span class="sourceLineNo">1399</span>        LdapUtils.storeDiff(mods, "dcmPackPDV",<a name="line.1399"></a>
+<span class="sourceLineNo">1400</span>                a.isPackPDV(),<a name="line.1400"></a>
+<span class="sourceLineNo">1401</span>                b.isPackPDV(),<a name="line.1401"></a>
+<span class="sourceLineNo">1402</span>                true);<a name="line.1402"></a>
+<span class="sourceLineNo">1403</span>        return mods;<a name="line.1403"></a>
+<span class="sourceLineNo">1404</span>    }<a name="line.1404"></a>
+<span class="sourceLineNo">1405</span><a name="line.1405"></a>
+<span class="sourceLineNo">1406</span>    private List&lt;ModificationItem&gt; storeDiffs(ApplicationEntity a,<a name="line.1406"></a>
+<span class="sourceLineNo">1407</span>            ApplicationEntity b, String deviceDN, List&lt;ModificationItem&gt; mods) {<a name="line.1407"></a>
+<span class="sourceLineNo">1408</span>        LdapUtils.storeDiff(mods, "dicomDescription",<a name="line.1408"></a>
+<span class="sourceLineNo">1409</span>                a.getDescription(),<a name="line.1409"></a>
+<span class="sourceLineNo">1410</span>                b.getDescription());<a name="line.1410"></a>
+<span class="sourceLineNo">1411</span>        storeDiff(mods, "dicomVendorData",<a name="line.1411"></a>
+<span class="sourceLineNo">1412</span>                a.getVendorData(),<a name="line.1412"></a>
+<span class="sourceLineNo">1413</span>                b.getVendorData());<a name="line.1413"></a>
+<span class="sourceLineNo">1414</span>        LdapUtils.storeDiff(mods, "dicomApplicationCluster",<a name="line.1414"></a>
+<span class="sourceLineNo">1415</span>                a.getApplicationClusters(),<a name="line.1415"></a>
+<span class="sourceLineNo">1416</span>                b.getApplicationClusters());<a name="line.1416"></a>
+<span class="sourceLineNo">1417</span>        LdapUtils.storeDiff(mods, "dicomPreferredCallingAETitle",<a name="line.1417"></a>
+<span class="sourceLineNo">1418</span>                a.getPreferredCallingAETitles(),<a name="line.1418"></a>
+<span class="sourceLineNo">1419</span>                b.getPreferredCallingAETitles());<a name="line.1419"></a>
+<span class="sourceLineNo">1420</span>        LdapUtils.storeDiff(mods, "dicomPreferredCalledAETitle",<a name="line.1420"></a>
+<span class="sourceLineNo">1421</span>                a.getPreferredCalledAETitles(),<a name="line.1421"></a>
+<span class="sourceLineNo">1422</span>                b.getPreferredCalledAETitles());<a name="line.1422"></a>
+<span class="sourceLineNo">1423</span>        LdapUtils.storeDiff(mods, "dicomAssociationInitiator",<a name="line.1423"></a>
+<span class="sourceLineNo">1424</span>                a.isAssociationInitiator(),<a name="line.1424"></a>
+<span class="sourceLineNo">1425</span>                b.isAssociationInitiator());<a name="line.1425"></a>
+<span class="sourceLineNo">1426</span>        LdapUtils.storeDiff(mods, "dicomAssociationAcceptor",<a name="line.1426"></a>
+<span class="sourceLineNo">1427</span>                a.isAssociationAcceptor(),<a name="line.1427"></a>
+<span class="sourceLineNo">1428</span>                b.isAssociationAcceptor());<a name="line.1428"></a>
+<span class="sourceLineNo">1429</span>        LdapUtils.storeDiff(mods, "dicomNetworkConnectionReference",<a name="line.1429"></a>
+<span class="sourceLineNo">1430</span>                a.getConnections(),<a name="line.1430"></a>
+<span class="sourceLineNo">1431</span>                b.getConnections(),<a name="line.1431"></a>
+<span class="sourceLineNo">1432</span>                deviceDN);<a name="line.1432"></a>
+<span class="sourceLineNo">1433</span>        LdapUtils.storeDiff(mods, "dicomSupportedCharacterSet",<a name="line.1433"></a>
+<span class="sourceLineNo">1434</span>                a.getSupportedCharacterSets(),<a name="line.1434"></a>
+<span class="sourceLineNo">1435</span>                b.getSupportedCharacterSets());<a name="line.1435"></a>
+<span class="sourceLineNo">1436</span>        LdapUtils.storeDiff(mods, "dicomInstalled",<a name="line.1436"></a>
+<span class="sourceLineNo">1437</span>                a.getInstalled(),<a name="line.1437"></a>
+<span class="sourceLineNo">1438</span>                b.getInstalled());<a name="line.1438"></a>
+<span class="sourceLineNo">1439</span>        if (!extended)<a name="line.1439"></a>
+<span class="sourceLineNo">1440</span>            return mods;<a name="line.1440"></a>
+<span class="sourceLineNo">1441</span><a name="line.1441"></a>
+<span class="sourceLineNo">1442</span>        LdapUtils.storeDiff(mods, "dcmAcceptedCallingAETitle",<a name="line.1442"></a>
+<span class="sourceLineNo">1443</span>                a.getAcceptedCallingAETitles(),<a name="line.1443"></a>
+<span class="sourceLineNo">1444</span>                b.getAcceptedCallingAETitles());<a name="line.1444"></a>
+<span class="sourceLineNo">1445</span>        for (LdapDicomConfigurationExtension ext : extensions)<a name="line.1445"></a>
+<span class="sourceLineNo">1446</span>            ext.storeDiffs(a, b, mods);<a name="line.1446"></a>
+<span class="sourceLineNo">1447</span>        return mods;<a name="line.1447"></a>
+<span class="sourceLineNo">1448</span>    }<a name="line.1448"></a>
+<span class="sourceLineNo">1449</span><a name="line.1449"></a>
+<span class="sourceLineNo">1450</span>    private List&lt;ModificationItem&gt; storeDiffs(TransferCapability a,<a name="line.1450"></a>
+<span class="sourceLineNo">1451</span>            TransferCapability b, List&lt;ModificationItem&gt; mods) {<a name="line.1451"></a>
+<span class="sourceLineNo">1452</span>        LdapUtils.storeDiff(mods, "dicomSOPClass",<a name="line.1452"></a>
+<span class="sourceLineNo">1453</span>                a.getSopClass(),<a name="line.1453"></a>
+<span class="sourceLineNo">1454</span>                b.getSopClass());<a name="line.1454"></a>
+<span class="sourceLineNo">1455</span>        LdapUtils.storeDiff(mods, "dicomTransferRole",<a name="line.1455"></a>
+<span class="sourceLineNo">1456</span>                a.getRole(),<a name="line.1456"></a>
+<span class="sourceLineNo">1457</span>                b.getRole());<a name="line.1457"></a>
+<span class="sourceLineNo">1458</span>        LdapUtils.storeDiff(mods, "dicomTransferSyntax",<a name="line.1458"></a>
+<span class="sourceLineNo">1459</span>                a.getTransferSyntaxes(),<a name="line.1459"></a>
+<span class="sourceLineNo">1460</span>                b.getTransferSyntaxes());<a name="line.1460"></a>
+<span class="sourceLineNo">1461</span>        if (!extended)<a name="line.1461"></a>
+<span class="sourceLineNo">1462</span>            return mods;<a name="line.1462"></a>
+<span class="sourceLineNo">1463</span><a name="line.1463"></a>
+<span class="sourceLineNo">1464</span>        storeDiffs(a.getQueryOptions(), b.getQueryOptions(), mods);<a name="line.1464"></a>
+<span class="sourceLineNo">1465</span>        storeDiffs(a.getStorageOptions(), b.getStorageOptions(), mods);<a name="line.1465"></a>
+<span class="sourceLineNo">1466</span>        return mods;<a name="line.1466"></a>
+<span class="sourceLineNo">1467</span>    }<a name="line.1467"></a>
+<span class="sourceLineNo">1468</span><a name="line.1468"></a>
+<span class="sourceLineNo">1469</span>    private void storeDiffs(EnumSet&lt;QueryOption&gt; prev,<a name="line.1469"></a>
+<span class="sourceLineNo">1470</span>            EnumSet&lt;QueryOption&gt; val, List&lt;ModificationItem&gt; mods) {<a name="line.1470"></a>
+<span class="sourceLineNo">1471</span>        if (prev != null ? prev.equals(val) : val == null)<a name="line.1471"></a>
+<span class="sourceLineNo">1472</span>            return;<a name="line.1472"></a>
+<span class="sourceLineNo">1473</span><a name="line.1473"></a>
+<span class="sourceLineNo">1474</span>        LdapUtils.storeDiff(mods, "dcmRelationalQueries",<a name="line.1474"></a>
+<span class="sourceLineNo">1475</span>                prev != null &amp;&amp; prev.contains(QueryOption.RELATIONAL),<a name="line.1475"></a>
+<span class="sourceLineNo">1476</span>                val != null &amp;&amp; val.contains(QueryOption.RELATIONAL),<a name="line.1476"></a>
+<span class="sourceLineNo">1477</span>                false);<a name="line.1477"></a>
+<span class="sourceLineNo">1478</span>        LdapUtils.storeDiff(mods, "dcmCombinedDateTimeMatching",<a name="line.1478"></a>
+<span class="sourceLineNo">1479</span>                prev != null &amp;&amp; prev.contains(QueryOption.DATETIME),<a name="line.1479"></a>
+<span class="sourceLineNo">1480</span>                val != null &amp;&amp; val.contains(QueryOption.DATETIME),<a name="line.1480"></a>
+<span class="sourceLineNo">1481</span>                false);<a name="line.1481"></a>
+<span class="sourceLineNo">1482</span>        LdapUtils.storeDiff(mods, "dcmFuzzySemanticMatching",<a name="line.1482"></a>
+<span class="sourceLineNo">1483</span>                prev != null &amp;&amp; prev.contains(QueryOption.FUZZY),<a name="line.1483"></a>
+<span class="sourceLineNo">1484</span>                val != null &amp;&amp; val.contains(QueryOption.FUZZY),<a name="line.1484"></a>
+<span class="sourceLineNo">1485</span>                false);<a name="line.1485"></a>
+<span class="sourceLineNo">1486</span>        LdapUtils.storeDiff(mods, "dcmTimezoneQueryAdjustment",<a name="line.1486"></a>
+<span class="sourceLineNo">1487</span>                prev != null &amp;&amp; prev.contains(QueryOption.TIMEZONE),<a name="line.1487"></a>
+<span class="sourceLineNo">1488</span>                val != null &amp;&amp; val.contains(QueryOption.TIMEZONE),<a name="line.1488"></a>
+<span class="sourceLineNo">1489</span>                false);<a name="line.1489"></a>
+<span class="sourceLineNo">1490</span>    }<a name="line.1490"></a>
+<span class="sourceLineNo">1491</span><a name="line.1491"></a>
+<span class="sourceLineNo">1492</span>    private void storeDiffs(StorageOptions prev,<a name="line.1492"></a>
+<span class="sourceLineNo">1493</span>            StorageOptions val, List&lt;ModificationItem&gt; mods) {<a name="line.1493"></a>
+<span class="sourceLineNo">1494</span>        if (prev != null ? prev.equals(val) : val == null)<a name="line.1494"></a>
+<span class="sourceLineNo">1495</span>            return;<a name="line.1495"></a>
+<span class="sourceLineNo">1496</span><a name="line.1496"></a>
+<span class="sourceLineNo">1497</span>        LdapUtils.storeDiff(mods, "dcmStorageConformance",<a name="line.1497"></a>
+<span class="sourceLineNo">1498</span>                prev != null ? prev.getLevelOfSupport().ordinal() : -1,<a name="line.1498"></a>
+<span class="sourceLineNo">1499</span>                val != null ? val.getLevelOfSupport().ordinal() : -1,<a name="line.1499"></a>
+<span class="sourceLineNo">1500</span>                -1);<a name="line.1500"></a>
+<span class="sourceLineNo">1501</span>        LdapUtils.storeDiff(mods, "dcmDigitalSignatureSupport",<a name="line.1501"></a>
+<span class="sourceLineNo">1502</span>                prev != null ? prev.getDigitalSignatureSupport().ordinal() : -1,<a name="line.1502"></a>
+<span class="sourceLineNo">1503</span>                val != null ? val.getDigitalSignatureSupport().ordinal() : -1,<a name="line.1503"></a>
+<span class="sourceLineNo">1504</span>                -1);<a name="line.1504"></a>
+<span class="sourceLineNo">1505</span>        LdapUtils.storeDiff(mods, "dcmDataElementCoercion",<a name="line.1505"></a>
+<span class="sourceLineNo">1506</span>                prev != null ? prev.getElementCoercion().ordinal() : -1,<a name="line.1506"></a>
+<span class="sourceLineNo">1507</span>                val != null ? val.getElementCoercion().ordinal() : -1,<a name="line.1507"></a>
+<span class="sourceLineNo">1508</span>                -1);<a name="line.1508"></a>
+<span class="sourceLineNo">1509</span>    }<a name="line.1509"></a>
+<span class="sourceLineNo">1510</span><a name="line.1510"></a>
+<span class="sourceLineNo">1511</span>    private static byte[][] byteArrays(Attribute attr) throws NamingException {<a name="line.1511"></a>
+<span class="sourceLineNo">1512</span>        if (attr == null)<a name="line.1512"></a>
+<span class="sourceLineNo">1513</span>            return new byte[0][];<a name="line.1513"></a>
+<span class="sourceLineNo">1514</span><a name="line.1514"></a>
+<span class="sourceLineNo">1515</span>        byte[][] bb = new byte[attr.size()][];<a name="line.1515"></a>
+<span class="sourceLineNo">1516</span>        for (int i = 0; i &lt; bb.length; i++)<a name="line.1516"></a>
+<span class="sourceLineNo">1517</span>            bb[i] = (byte[]) attr.get(i);<a name="line.1517"></a>
+<span class="sourceLineNo">1518</span><a name="line.1518"></a>
+<span class="sourceLineNo">1519</span>        return bb;<a name="line.1519"></a>
+<span class="sourceLineNo">1520</span>    }<a name="line.1520"></a>
+<span class="sourceLineNo">1521</span><a name="line.1521"></a>
+<span class="sourceLineNo">1522</span>    private Code[] codeArray(Attribute attr) throws NamingException {<a name="line.1522"></a>
+<span class="sourceLineNo">1523</span>        if (attr == null)<a name="line.1523"></a>
+<span class="sourceLineNo">1524</span>            return EMPTY_CODES;<a name="line.1524"></a>
+<span class="sourceLineNo">1525</span><a name="line.1525"></a>
+<span class="sourceLineNo">1526</span>        Code[] codes = new Code[attr.size()];<a name="line.1526"></a>
+<span class="sourceLineNo">1527</span>        for (int i = 0; i &lt; codes.length; i++)<a name="line.1527"></a>
+<span class="sourceLineNo">1528</span>            codes[i] = new Code((String) attr.get(i));<a name="line.1528"></a>
+<span class="sourceLineNo">1529</span><a name="line.1529"></a>
+<span class="sourceLineNo">1530</span>        return codes;<a name="line.1530"></a>
+<span class="sourceLineNo">1531</span>    }<a name="line.1531"></a>
+<span class="sourceLineNo">1532</span><a name="line.1532"></a>
+<span class="sourceLineNo">1533</span>    private static Issuer issuerValue(Attribute attr) throws NamingException {<a name="line.1533"></a>
+<span class="sourceLineNo">1534</span>        return attr != null ? new Issuer((String) attr.get()) : null;<a name="line.1534"></a>
+<span class="sourceLineNo">1535</span>    }<a name="line.1535"></a>
+<span class="sourceLineNo">1536</span><a name="line.1536"></a>
+<span class="sourceLineNo">1537</span>    private void mergeAEs(Device prevDev, Device dev, String deviceDN)<a name="line.1537"></a>
+<span class="sourceLineNo">1538</span>            throws NamingException {<a name="line.1538"></a>
+<span class="sourceLineNo">1539</span>        Collection&lt;String&gt; aets = dev.getApplicationAETitles();<a name="line.1539"></a>
+<span class="sourceLineNo">1540</span>        for (String aet : prevDev.getApplicationAETitles()) {<a name="line.1540"></a>
+<span class="sourceLineNo">1541</span>            if (!aets.contains(aet))<a name="line.1541"></a>
+<span class="sourceLineNo">1542</span>                destroySubcontextWithChilds(aetDN(aet, deviceDN));<a name="line.1542"></a>
+<span class="sourceLineNo">1543</span>        }<a name="line.1543"></a>
+<span class="sourceLineNo">1544</span>        Collection&lt;String&gt; prevAETs = prevDev.getApplicationAETitles();<a name="line.1544"></a>
+<span class="sourceLineNo">1545</span>        for (ApplicationEntity ae : dev.getApplicationEntities()) {<a name="line.1545"></a>
+<span class="sourceLineNo">1546</span>            String aet = ae.getAETitle();<a name="line.1546"></a>
+<span class="sourceLineNo">1547</span>            if (!prevAETs.contains(aet)) {<a name="line.1547"></a>
+<span class="sourceLineNo">1548</span>                String aeDN = aetDN(ae.getAETitle(), deviceDN);<a name="line.1548"></a>
+<span class="sourceLineNo">1549</span>                createSubcontext(aeDN,<a name="line.1549"></a>
+<span class="sourceLineNo">1550</span>                        storeTo(ae, deviceDN, new BasicAttributes(true)));<a name="line.1550"></a>
+<span class="sourceLineNo">1551</span>                storeChilds(aeDN, ae);<a name="line.1551"></a>
+<span class="sourceLineNo">1552</span>            } else<a name="line.1552"></a>
+<span class="sourceLineNo">1553</span>                merge(prevDev.getApplicationEntity(aet), ae, deviceDN);<a name="line.1553"></a>
+<span class="sourceLineNo">1554</span>        }<a name="line.1554"></a>
+<span class="sourceLineNo">1555</span>    }<a name="line.1555"></a>
+<span class="sourceLineNo">1556</span><a name="line.1556"></a>
+<span class="sourceLineNo">1557</span>    private void merge(ApplicationEntity prev, ApplicationEntity ae,<a name="line.1557"></a>
+<span class="sourceLineNo">1558</span>            String deviceDN) throws NamingException {<a name="line.1558"></a>
+<span class="sourceLineNo">1559</span>        String aeDN = aetDN(ae.getAETitle(), deviceDN);<a name="line.1559"></a>
+<span class="sourceLineNo">1560</span>        modifyAttributes(aeDN, storeDiffs(prev, ae, deviceDN, new ArrayList&lt;ModificationItem&gt;()));<a name="line.1560"></a>
+<span class="sourceLineNo">1561</span>        mergeChilds(prev, ae, aeDN);<a name="line.1561"></a>
+<span class="sourceLineNo">1562</span>    }<a name="line.1562"></a>
+<span class="sourceLineNo">1563</span><a name="line.1563"></a>
+<span class="sourceLineNo">1564</span>    private void mergeChilds(ApplicationEntity prev, ApplicationEntity ae,<a name="line.1564"></a>
+<span class="sourceLineNo">1565</span>            String aeDN) throws NamingException {<a name="line.1565"></a>
+<span class="sourceLineNo">1566</span>        merge(prev.getTransferCapabilities(), ae.getTransferCapabilities(), aeDN);<a name="line.1566"></a>
+<span class="sourceLineNo">1567</span>        for (LdapDicomConfigurationExtension ext : extensions)<a name="line.1567"></a>
+<span class="sourceLineNo">1568</span>            ext.mergeChilds(prev, ae, aeDN);<a name="line.1568"></a>
+<span class="sourceLineNo">1569</span>    }<a name="line.1569"></a>
+<span class="sourceLineNo">1570</span><a name="line.1570"></a>
+<span class="sourceLineNo">1571</span>    public void modifyAttributes(String dn, List&lt;ModificationItem&gt; mods)<a name="line.1571"></a>
+<span class="sourceLineNo">1572</span>            throws NamingException {<a name="line.1572"></a>
+<span class="sourceLineNo">1573</span>        if (!mods.isEmpty())<a name="line.1573"></a>
+<span class="sourceLineNo">1574</span>            ctx.modifyAttributes(dn, mods.toArray(new ModificationItem[mods.size()]));<a name="line.1574"></a>
+<span class="sourceLineNo">1575</span>    }<a name="line.1575"></a>
+<span class="sourceLineNo">1576</span><a name="line.1576"></a>
+<span class="sourceLineNo">1577</span>    private void merge(Collection&lt;TransferCapability&gt; prevs,<a name="line.1577"></a>
+<span class="sourceLineNo">1578</span>            Collection&lt;TransferCapability&gt; tcs, String aeDN) throws NamingException {<a name="line.1578"></a>
+<span class="sourceLineNo">1579</span>        for (TransferCapability tc : prevs) {<a name="line.1579"></a>
+<span class="sourceLineNo">1580</span>            String dn = dnOf(tc, aeDN);<a name="line.1580"></a>
+<span class="sourceLineNo">1581</span>            if (findByDN(aeDN, tcs, dn) == null)<a name="line.1581"></a>
+<span class="sourceLineNo">1582</span>                destroySubcontext(dn);<a name="line.1582"></a>
+<span class="sourceLineNo">1583</span>        }<a name="line.1583"></a>
+<span class="sourceLineNo">1584</span>        for (TransferCapability tc : tcs) {<a name="line.1584"></a>
+<span class="sourceLineNo">1585</span>            String dn = dnOf(tc, aeDN);<a name="line.1585"></a>
+<span class="sourceLineNo">1586</span>            TransferCapability prev = findByDN(aeDN, prevs, dn);<a name="line.1586"></a>
+<span class="sourceLineNo">1587</span>            if (prev == null)<a name="line.1587"></a>
+<span class="sourceLineNo">1588</span>                createSubcontext(dn, storeTo(tc, new BasicAttributes(true)));<a name="line.1588"></a>
+<span class="sourceLineNo">1589</span>            else<a name="line.1589"></a>
+<span class="sourceLineNo">1590</span>                modifyAttributes(dn, storeDiffs(prev, tc, new ArrayList&lt;ModificationItem&gt;()));<a name="line.1590"></a>
+<span class="sourceLineNo">1591</span>        }<a name="line.1591"></a>
+<span class="sourceLineNo">1592</span>    }<a name="line.1592"></a>
+<span class="sourceLineNo">1593</span><a name="line.1593"></a>
+<span class="sourceLineNo">1594</span>    private void mergeConnections(Device prevDev, Device device, String deviceDN)<a name="line.1594"></a>
+<span class="sourceLineNo">1595</span>            throws NamingException {<a name="line.1595"></a>
+<span class="sourceLineNo">1596</span>        List&lt;Connection&gt; prevs = prevDev.listConnections();<a name="line.1596"></a>
+<span class="sourceLineNo">1597</span>        List&lt;Connection&gt; conns = device.listConnections();<a name="line.1597"></a>
+<span class="sourceLineNo">1598</span>        for (Connection prev : prevs) {<a name="line.1598"></a>
+<span class="sourceLineNo">1599</span>            String dn = LdapUtils.dnOf(prev, deviceDN);<a name="line.1599"></a>
+<span class="sourceLineNo">1600</span>            if (LdapUtils.findByDN(deviceDN, conns, dn) == null)<a name="line.1600"></a>
+<span class="sourceLineNo">1601</span>                destroySubcontext(dn);<a name="line.1601"></a>
+<span class="sourceLineNo">1602</span>        }<a name="line.1602"></a>
+<span class="sourceLineNo">1603</span>        for (Connection conn : conns) {<a name="line.1603"></a>
+<span class="sourceLineNo">1604</span>            String dn = LdapUtils.dnOf(conn, deviceDN);<a name="line.1604"></a>
+<span class="sourceLineNo">1605</span>            Connection prev = LdapUtils.findByDN(deviceDN, prevs, dn);<a name="line.1605"></a>
+<span class="sourceLineNo">1606</span>            if (prev == null)<a name="line.1606"></a>
+<span class="sourceLineNo">1607</span>                createSubcontext(dn, storeTo(conn, new BasicAttributes(true)));<a name="line.1607"></a>
+<span class="sourceLineNo">1608</span>            else<a name="line.1608"></a>
+<span class="sourceLineNo">1609</span>                modifyAttributes(dn, storeDiffs(prev, conn, new ArrayList&lt;ModificationItem&gt;()));<a name="line.1609"></a>
+<span class="sourceLineNo">1610</span>        }<a name="line.1610"></a>
+<span class="sourceLineNo">1611</span>    }<a name="line.1611"></a>
+<span class="sourceLineNo">1612</span><a name="line.1612"></a>
+<span class="sourceLineNo">1613</span>    private static TransferCapability findByDN(String aeDN, <a name="line.1613"></a>
+<span class="sourceLineNo">1614</span>            Collection&lt;TransferCapability&gt; tcs, String dn) {<a name="line.1614"></a>
+<span class="sourceLineNo">1615</span>        for (TransferCapability tc : tcs)<a name="line.1615"></a>
+<span class="sourceLineNo">1616</span>            if (dn.equals(dnOf(tc, aeDN)))<a name="line.1616"></a>
+<span class="sourceLineNo">1617</span>                return tc;<a name="line.1617"></a>
+<span class="sourceLineNo">1618</span>        return null;<a name="line.1618"></a>
+<span class="sourceLineNo">1619</span>    }<a name="line.1619"></a>
+<span class="sourceLineNo">1620</span><a name="line.1620"></a>
+<span class="sourceLineNo">1621</span>    private static void storeDiff(List&lt;ModificationItem&gt; mods, String attrId,<a name="line.1621"></a>
+<span class="sourceLineNo">1622</span>            byte[][] prevs, byte[][] vals) {<a name="line.1622"></a>
+<span class="sourceLineNo">1623</span>        if (!equals(prevs, vals))<a name="line.1623"></a>
+<span class="sourceLineNo">1624</span>            mods.add((vals.length == 0)<a name="line.1624"></a>
+<span class="sourceLineNo">1625</span>                    ? new ModificationItem(DirContext.REMOVE_ATTRIBUTE,<a name="line.1625"></a>
+<span class="sourceLineNo">1626</span>                            new BasicAttribute(attrId))<a name="line.1626"></a>
+<span class="sourceLineNo">1627</span>                    : new ModificationItem(DirContext.REPLACE_ATTRIBUTE,<a name="line.1627"></a>
+<span class="sourceLineNo">1628</span>                            attr(attrId, vals)));<a name="line.1628"></a>
+<span class="sourceLineNo">1629</span>    }<a name="line.1629"></a>
+<span class="sourceLineNo">1630</span><a name="line.1630"></a>
+<span class="sourceLineNo">1631</span>    private static boolean equals(byte[][] a, byte[][] a2) {<a name="line.1631"></a>
+<span class="sourceLineNo">1632</span>        int length = a.length;<a name="line.1632"></a>
+<span class="sourceLineNo">1633</span>        if (a2.length != length)<a name="line.1633"></a>
+<span class="sourceLineNo">1634</span>            return false;<a name="line.1634"></a>
+<span class="sourceLineNo">1635</span><a name="line.1635"></a>
+<span class="sourceLineNo">1636</span>        outer:<a name="line.1636"></a>
+<span class="sourceLineNo">1637</span>        for (byte[] o1 : a) {<a name="line.1637"></a>
+<span class="sourceLineNo">1638</span>            for (byte[] o2 : a2)<a name="line.1638"></a>
+<span class="sourceLineNo">1639</span>                if (Arrays.equals(o1, o2))<a name="line.1639"></a>
+<span class="sourceLineNo">1640</span>                    continue outer;<a name="line.1640"></a>
+<span class="sourceLineNo">1641</span>            return false;<a name="line.1641"></a>
+<span class="sourceLineNo">1642</span>        }<a name="line.1642"></a>
+<span class="sourceLineNo">1643</span>        return true;<a name="line.1643"></a>
+<span class="sourceLineNo">1644</span>    }<a name="line.1644"></a>
+<span class="sourceLineNo">1645</span><a name="line.1645"></a>
+<span class="sourceLineNo">1646</span>    private static String aetDN(String aet, String parentDN) {<a name="line.1646"></a>
+<span class="sourceLineNo">1647</span>        return LdapUtils.dnOf("dicomAETitle" ,aet, parentDN);<a name="line.1647"></a>
+<span class="sourceLineNo">1648</span>    }<a name="line.1648"></a>
+<span class="sourceLineNo">1649</span><a name="line.1649"></a>
+<span class="sourceLineNo">1650</span>    @Override<a name="line.1650"></a>
+<span class="sourceLineNo">1651</span>    public String deviceRef(String name) {<a name="line.1651"></a>
+<span class="sourceLineNo">1652</span>        return LdapUtils.dnOf("dicomDeviceName" ,name, devicesDN);<a name="line.1652"></a>
+<span class="sourceLineNo">1653</span>    }<a name="line.1653"></a>
+<span class="sourceLineNo">1654</span><a name="line.1654"></a>
+<span class="sourceLineNo">1655</span>    private static String dnOf(TransferCapability tc, String aeDN) {<a name="line.1655"></a>
+<span class="sourceLineNo">1656</span>        String cn = tc.getCommonName();<a name="line.1656"></a>
+<span class="sourceLineNo">1657</span>        return (cn != null)<a name="line.1657"></a>
+<span class="sourceLineNo">1658</span>            ? LdapUtils.dnOf("cn", cn , aeDN)<a name="line.1658"></a>
+<span class="sourceLineNo">1659</span>            : LdapUtils.dnOf("dicomSOPClass", tc.getSopClass(),<a name="line.1659"></a>
+<span class="sourceLineNo">1660</span>                   "dicomTransferRole", tc.getRole().toString(), aeDN);<a name="line.1660"></a>
+<span class="sourceLineNo">1661</span>    }<a name="line.1661"></a>
+<span class="sourceLineNo">1662</span><a name="line.1662"></a>
+<span class="sourceLineNo">1663</span>    private static void storeNotEmpty(Attributes attrs, String attrID, byte[]... vals) {<a name="line.1663"></a>
+<span class="sourceLineNo">1664</span>        if (vals != null &amp;&amp; vals.length &gt; 0)<a name="line.1664"></a>
+<span class="sourceLineNo">1665</span>            attrs.put(attr(attrID, vals));<a name="line.1665"></a>
+<span class="sourceLineNo">1666</span>    }<a name="line.1666"></a>
+<span class="sourceLineNo">1667</span><a name="line.1667"></a>
+<span class="sourceLineNo">1668</span>    private static &lt;T&gt; Attribute attr(String attrID, byte[]... vals) {<a name="line.1668"></a>
+<span class="sourceLineNo">1669</span>        Attribute attr = new BasicAttribute(attrID);<a name="line.1669"></a>
+<span class="sourceLineNo">1670</span>        for (byte[] val : vals)<a name="line.1670"></a>
+<span class="sourceLineNo">1671</span>            attr.add(val);<a name="line.1671"></a>
+<span class="sourceLineNo">1672</span>        return attr;<a name="line.1672"></a>
+<span class="sourceLineNo">1673</span>    }<a name="line.1673"></a>
+<span class="sourceLineNo">1674</span><a name="line.1674"></a>
+<span class="sourceLineNo">1675</span>    private static void safeClose(Context ctx) {<a name="line.1675"></a>
+<span class="sourceLineNo">1676</span>        if (ctx != null)<a name="line.1676"></a>
+<span class="sourceLineNo">1677</span>            try {<a name="line.1677"></a>
+<span class="sourceLineNo">1678</span>                ctx.close();<a name="line.1678"></a>
+<span class="sourceLineNo">1679</span>            } catch (NamingException e) {<a name="line.1679"></a>
+<span class="sourceLineNo">1680</span>            }<a name="line.1680"></a>
+<span class="sourceLineNo">1681</span>    }<a name="line.1681"></a>
+<span class="sourceLineNo">1682</span><a name="line.1682"></a>
+<span class="sourceLineNo">1683</span>    public void store(AttributeCoercions coercions, String parentDN)<a name="line.1683"></a>
+<span class="sourceLineNo">1684</span>            throws NamingException {<a name="line.1684"></a>
+<span class="sourceLineNo">1685</span>            for (AttributeCoercion ac : coercions)<a name="line.1685"></a>
+<span class="sourceLineNo">1686</span>                createSubcontext(<a name="line.1686"></a>
+<span class="sourceLineNo">1687</span>                        LdapUtils.dnOf("cn", ac.getCommonName(), parentDN),<a name="line.1687"></a>
+<span class="sourceLineNo">1688</span>                        storeTo(ac, new BasicAttributes(true)));<a name="line.1688"></a>
+<span class="sourceLineNo">1689</span>        }<a name="line.1689"></a>
+<span class="sourceLineNo">1690</span><a name="line.1690"></a>
+<span class="sourceLineNo">1691</span>    private static Attributes storeTo(AttributeCoercion ac, BasicAttributes attrs) {<a name="line.1691"></a>
+<span class="sourceLineNo">1692</span>        attrs.put("objectclass", "dcmAttributeCoercion");<a name="line.1692"></a>
+<span class="sourceLineNo">1693</span>        attrs.put("cn", ac.getCommonName());<a name="line.1693"></a>
+<span class="sourceLineNo">1694</span>        LdapUtils.storeNotNull(attrs, "dcmDIMSE", ac.getDIMSE());<a name="line.1694"></a>
+<span class="sourceLineNo">1695</span>        LdapUtils.storeNotNull(attrs, "dicomTransferRole", ac.getRole());<a name="line.1695"></a>
+<span class="sourceLineNo">1696</span>        LdapUtils.storeNotEmpty(attrs, "dcmAETitle", ac.getAETitles());<a name="line.1696"></a>
+<span class="sourceLineNo">1697</span>        LdapUtils.storeNotEmpty(attrs, "dcmSOPClass", ac.getSOPClasses());<a name="line.1697"></a>
+<span class="sourceLineNo">1698</span>        LdapUtils.storeNotNull(attrs, "labeledURI", ac.getURI());<a name="line.1698"></a>
+<span class="sourceLineNo">1699</span>        return attrs;<a name="line.1699"></a>
+<span class="sourceLineNo">1700</span>    }<a name="line.1700"></a>
+<span class="sourceLineNo">1701</span><a name="line.1701"></a>
+<span class="sourceLineNo">1702</span>    public void load(AttributeCoercions acs, String dn) throws NamingException {<a name="line.1702"></a>
+<span class="sourceLineNo">1703</span>        NamingEnumeration&lt;SearchResult&gt; ne =<a name="line.1703"></a>
+<span class="sourceLineNo">1704</span>                search(dn, "(objectclass=dcmAttributeCoercion)");<a name="line.1704"></a>
+<span class="sourceLineNo">1705</span>        try {<a name="line.1705"></a>
+<span class="sourceLineNo">1706</span>            while (ne.hasMore()) {<a name="line.1706"></a>
+<span class="sourceLineNo">1707</span>                SearchResult sr = ne.next();<a name="line.1707"></a>
+<span class="sourceLineNo">1708</span>                Attributes attrs = sr.getAttributes();<a name="line.1708"></a>
+<span class="sourceLineNo">1709</span>                acs.add(new AttributeCoercion(<a name="line.1709"></a>
+<span class="sourceLineNo">1710</span>                        LdapUtils.stringValue(attrs.get("cn"), null),<a name="line.1710"></a>
+<span class="sourceLineNo">1711</span>                        LdapUtils.stringArray(attrs.get("dcmSOPClass")),<a name="line.1711"></a>
+<span class="sourceLineNo">1712</span>                        Dimse.valueOf(LdapUtils.stringValue(attrs.get("dcmDIMSE"), null)),<a name="line.1712"></a>
+<span class="sourceLineNo">1713</span>                        TransferCapability.Role.valueOf(<a name="line.1713"></a>
+<span class="sourceLineNo">1714</span>                                LdapUtils.stringValue(attrs.get("dicomTransferRole"), null)),<a name="line.1714"></a>
+<span class="sourceLineNo">1715</span>                        LdapUtils.stringArray(attrs.get("dcmAETitle")),<a name="line.1715"></a>
+<span class="sourceLineNo">1716</span>                        LdapUtils.stringValue(attrs.get("labeledURI"), null)));<a name="line.1716"></a>
+<span class="sourceLineNo">1717</span>            }<a name="line.1717"></a>
+<span class="sourceLineNo">1718</span>        } finally {<a name="line.1718"></a>
+<span class="sourceLineNo">1719</span>           LdapUtils.safeClose(ne);<a name="line.1719"></a>
+<span class="sourceLineNo">1720</span>        }<a name="line.1720"></a>
+<span class="sourceLineNo">1721</span>    }<a name="line.1721"></a>
+<span class="sourceLineNo">1722</span><a name="line.1722"></a>
+<span class="sourceLineNo">1723</span>    public void merge(AttributeCoercions prevs, AttributeCoercions acs, <a name="line.1723"></a>
+<span class="sourceLineNo">1724</span>            String parentDN) throws NamingException {<a name="line.1724"></a>
+<span class="sourceLineNo">1725</span>        for (AttributeCoercion prev : prevs) {<a name="line.1725"></a>
+<span class="sourceLineNo">1726</span>            String cn = prev.getCommonName();<a name="line.1726"></a>
+<span class="sourceLineNo">1727</span>            if (acs.findByCommonName(cn) == null)<a name="line.1727"></a>
+<span class="sourceLineNo">1728</span>                destroySubcontext(LdapUtils.dnOf("cn", cn, parentDN));<a name="line.1728"></a>
+<span class="sourceLineNo">1729</span>        }<a name="line.1729"></a>
+<span class="sourceLineNo">1730</span>        for (AttributeCoercion ac : acs) {<a name="line.1730"></a>
+<span class="sourceLineNo">1731</span>            String cn = ac.getCommonName();<a name="line.1731"></a>
+<span class="sourceLineNo">1732</span>            String dn = LdapUtils.dnOf("cn", cn, parentDN);<a name="line.1732"></a>
+<span class="sourceLineNo">1733</span>            AttributeCoercion prev = prevs.findByCommonName(cn);<a name="line.1733"></a>
+<span class="sourceLineNo">1734</span>            if (prev == null)<a name="line.1734"></a>
+<span class="sourceLineNo">1735</span>                createSubcontext(dn, storeTo(ac, new BasicAttributes(true)));<a name="line.1735"></a>
+<span class="sourceLineNo">1736</span>            else<a name="line.1736"></a>
+<span class="sourceLineNo">1737</span>                modifyAttributes(dn, storeDiffs(prev, ac, <a name="line.1737"></a>
+<span class="sourceLineNo">1738</span>                        new ArrayList&lt;ModificationItem&gt;()));<a name="line.1738"></a>
+<span class="sourceLineNo">1739</span>        }<a name="line.1739"></a>
+<span class="sourceLineNo">1740</span>    }<a name="line.1740"></a>
+<span class="sourceLineNo">1741</span><a name="line.1741"></a>
+<span class="sourceLineNo">1742</span>    private List&lt;ModificationItem&gt; storeDiffs(AttributeCoercion prev,<a name="line.1742"></a>
+<span class="sourceLineNo">1743</span>            AttributeCoercion ac, ArrayList&lt;ModificationItem&gt; mods) {<a name="line.1743"></a>
+<span class="sourceLineNo">1744</span>        LdapUtils.storeDiff(mods, "dcmDIMSE", prev.getDIMSE(), ac.getDIMSE());<a name="line.1744"></a>
+<span class="sourceLineNo">1745</span>        LdapUtils.storeDiff(mods, "dicomTransferRole", <a name="line.1745"></a>
+<span class="sourceLineNo">1746</span>                prev.getRole(),<a name="line.1746"></a>
+<span class="sourceLineNo">1747</span>                ac.getRole());<a name="line.1747"></a>
+<span class="sourceLineNo">1748</span>        LdapUtils.storeDiff(mods, "dcmAETitle", <a name="line.1748"></a>
+<span class="sourceLineNo">1749</span>                prev.getAETitles(),<a name="line.1749"></a>
+<span class="sourceLineNo">1750</span>                ac.getAETitles());<a name="line.1750"></a>
+<span class="sourceLineNo">1751</span>        LdapUtils.storeDiff(mods, "dcmSOPClass",<a name="line.1751"></a>
+<span class="sourceLineNo">1752</span>                prev.getSOPClasses(),<a name="line.1752"></a>
+<span class="sourceLineNo">1753</span>                ac.getSOPClasses());<a name="line.1753"></a>
+<span class="sourceLineNo">1754</span>        LdapUtils.storeDiff(mods, "labeledURI", prev.getURI(), ac.getURI());<a name="line.1754"></a>
+<span class="sourceLineNo">1755</span>        return mods;<a name="line.1755"></a>
+<span class="sourceLineNo">1756</span>    }<a name="line.1756"></a>
+<span class="sourceLineNo">1757</span>}<a name="line.1757"></a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</pre>
+</div>
+</body>
+</html>

@@ -1,0 +1,440 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+<title>Source code</title>
+<link rel="stylesheet" type="text/css" href="../../../../stylesheet.css" title="Style">
+</head>
+<body>
+<div class="sourceContainer">
+<pre><span class="sourceLineNo">001</span>/* ***** BEGIN LICENSE BLOCK *****<a name="line.1"></a>
+<span class="sourceLineNo">002</span> * Version: MPL 1.1/GPL 2.0/LGPL 2.1<a name="line.2"></a>
+<span class="sourceLineNo">003</span> *<a name="line.3"></a>
+<span class="sourceLineNo">004</span> * The contents of this file are subject to the Mozilla Public License Version<a name="line.4"></a>
+<span class="sourceLineNo">005</span> * 1.1 (the "License"); you may not use this file except in compliance with<a name="line.5"></a>
+<span class="sourceLineNo">006</span> * the License. You may obtain a copy of the License at<a name="line.6"></a>
+<span class="sourceLineNo">007</span> * http://www.mozilla.org/MPL/<a name="line.7"></a>
+<span class="sourceLineNo">008</span> *<a name="line.8"></a>
+<span class="sourceLineNo">009</span> * Software distributed under the License is distributed on an "AS IS" basis,<a name="line.9"></a>
+<span class="sourceLineNo">010</span> * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License<a name="line.10"></a>
+<span class="sourceLineNo">011</span> * for the specific language governing rights and limitations under the<a name="line.11"></a>
+<span class="sourceLineNo">012</span> * License.<a name="line.12"></a>
+<span class="sourceLineNo">013</span> *<a name="line.13"></a>
+<span class="sourceLineNo">014</span> * The Original Code is part of dcm4che, an implementation of DICOM(TM) in<a name="line.14"></a>
+<span class="sourceLineNo">015</span> * Java(TM), hosted at https://github.com/gunterze/dcm4che.<a name="line.15"></a>
+<span class="sourceLineNo">016</span> *<a name="line.16"></a>
+<span class="sourceLineNo">017</span> * The Initial Developer of the Original Code is<a name="line.17"></a>
+<span class="sourceLineNo">018</span> * Agfa Healthcare.<a name="line.18"></a>
+<span class="sourceLineNo">019</span> * Portions created by the Initial Developer are Copyright (C) 2011<a name="line.19"></a>
+<span class="sourceLineNo">020</span> * the Initial Developer. All Rights Reserved.<a name="line.20"></a>
+<span class="sourceLineNo">021</span> *<a name="line.21"></a>
+<span class="sourceLineNo">022</span> * Contributor(s):<a name="line.22"></a>
+<span class="sourceLineNo">023</span> * See @authors listed below<a name="line.23"></a>
+<span class="sourceLineNo">024</span> *<a name="line.24"></a>
+<span class="sourceLineNo">025</span> * Alternatively, the contents of this file may be used under the terms of<a name="line.25"></a>
+<span class="sourceLineNo">026</span> * either the GNU General Public License Version 2 or later (the "GPL"), or<a name="line.26"></a>
+<span class="sourceLineNo">027</span> * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),<a name="line.27"></a>
+<span class="sourceLineNo">028</span> * in which case the provisions of the GPL or the LGPL are applicable instead<a name="line.28"></a>
+<span class="sourceLineNo">029</span> * of those above. If you wish to allow use of your version of this file only<a name="line.29"></a>
+<span class="sourceLineNo">030</span> * under the terms of either the GPL or the LGPL, and not to allow others to<a name="line.30"></a>
+<span class="sourceLineNo">031</span> * use your version of this file under the terms of the MPL, indicate your<a name="line.31"></a>
+<span class="sourceLineNo">032</span> * decision by deleting the provisions above and replace them with the notice<a name="line.32"></a>
+<span class="sourceLineNo">033</span> * and other provisions required by the GPL or the LGPL. If you do not delete<a name="line.33"></a>
+<span class="sourceLineNo">034</span> * the provisions above, a recipient may use your version of this file under<a name="line.34"></a>
+<span class="sourceLineNo">035</span> * the terms of any one of the MPL, the GPL or the LGPL.<a name="line.35"></a>
+<span class="sourceLineNo">036</span> *<a name="line.36"></a>
+<span class="sourceLineNo">037</span> * ***** END LICENSE BLOCK ***** */<a name="line.37"></a>
+<span class="sourceLineNo">038</span><a name="line.38"></a>
+<span class="sourceLineNo">039</span>package org.dcm4che.io;<a name="line.39"></a>
+<span class="sourceLineNo">040</span><a name="line.40"></a>
+<span class="sourceLineNo">041</span>import java.io.IOException;<a name="line.41"></a>
+<span class="sourceLineNo">042</span><a name="line.42"></a>
+<span class="sourceLineNo">043</span>import org.dcm4che.data.Attributes;<a name="line.43"></a>
+<span class="sourceLineNo">044</span>import org.dcm4che.data.BulkDataLocator;<a name="line.44"></a>
+<span class="sourceLineNo">045</span>import org.dcm4che.data.ElementDictionary;<a name="line.45"></a>
+<span class="sourceLineNo">046</span>import org.dcm4che.data.Fragments;<a name="line.46"></a>
+<span class="sourceLineNo">047</span>import org.dcm4che.data.PersonName;<a name="line.47"></a>
+<span class="sourceLineNo">048</span>import org.dcm4che.data.Sequence;<a name="line.48"></a>
+<span class="sourceLineNo">049</span>import org.dcm4che.data.SpecificCharacterSet;<a name="line.49"></a>
+<span class="sourceLineNo">050</span>import org.dcm4che.data.Tag;<a name="line.50"></a>
+<span class="sourceLineNo">051</span>import org.dcm4che.data.VR;<a name="line.51"></a>
+<span class="sourceLineNo">052</span>import org.dcm4che.data.Value;<a name="line.52"></a>
+<span class="sourceLineNo">053</span>import org.dcm4che.io.DicomInputStream.IncludeBulkData;<a name="line.53"></a>
+<span class="sourceLineNo">054</span>import org.dcm4che.util.Base64;<a name="line.54"></a>
+<span class="sourceLineNo">055</span>import org.dcm4che.util.ByteUtils;<a name="line.55"></a>
+<span class="sourceLineNo">056</span>import org.dcm4che.util.TagUtils;<a name="line.56"></a>
+<span class="sourceLineNo">057</span>import org.xml.sax.ContentHandler;<a name="line.57"></a>
+<span class="sourceLineNo">058</span>import org.xml.sax.SAXException;<a name="line.58"></a>
+<span class="sourceLineNo">059</span>import org.xml.sax.helpers.AttributesImpl;<a name="line.59"></a>
+<span class="sourceLineNo">060</span><a name="line.60"></a>
+<span class="sourceLineNo">061</span>/**<a name="line.61"></a>
+<span class="sourceLineNo">062</span> * @author Gunter Zeilinger &lt;gunterze@gmail.com&gt;<a name="line.62"></a>
+<span class="sourceLineNo">063</span> */<a name="line.63"></a>
+<span class="sourceLineNo">064</span>public class SAXWriter implements DicomInputHandler {<a name="line.64"></a>
+<span class="sourceLineNo">065</span><a name="line.65"></a>
+<span class="sourceLineNo">066</span>    private static final String NAMESPACE = "http://dicom.nema.org/PS3.19/models/NativeDICOM";<a name="line.66"></a>
+<span class="sourceLineNo">067</span>    private static final int BASE64_CHUNK_LENGTH = 256 * 3;<a name="line.67"></a>
+<span class="sourceLineNo">068</span>    private static final int BUFFER_LENGTH = 256 * 4;<a name="line.68"></a>
+<span class="sourceLineNo">069</span>    <a name="line.69"></a>
+<span class="sourceLineNo">070</span>    private boolean includeKeyword = true;<a name="line.70"></a>
+<span class="sourceLineNo">071</span>    private String namespace = "";<a name="line.71"></a>
+<span class="sourceLineNo">072</span><a name="line.72"></a>
+<span class="sourceLineNo">073</span>    private final ContentHandler ch;<a name="line.73"></a>
+<span class="sourceLineNo">074</span>    private final AttributesImpl atts = new AttributesImpl();<a name="line.74"></a>
+<span class="sourceLineNo">075</span>    private final char[] buffer = new char[BUFFER_LENGTH];<a name="line.75"></a>
+<span class="sourceLineNo">076</span><a name="line.76"></a>
+<span class="sourceLineNo">077</span>    public SAXWriter(ContentHandler ch) {<a name="line.77"></a>
+<span class="sourceLineNo">078</span>        this.ch = ch;<a name="line.78"></a>
+<span class="sourceLineNo">079</span>    }<a name="line.79"></a>
+<span class="sourceLineNo">080</span><a name="line.80"></a>
+<span class="sourceLineNo">081</span>    public final boolean isIncludeKeyword() {<a name="line.81"></a>
+<span class="sourceLineNo">082</span>        return includeKeyword;<a name="line.82"></a>
+<span class="sourceLineNo">083</span>    }<a name="line.83"></a>
+<span class="sourceLineNo">084</span><a name="line.84"></a>
+<span class="sourceLineNo">085</span>    public final void setIncludeKeyword(boolean includeKeyword) {<a name="line.85"></a>
+<span class="sourceLineNo">086</span>        this.includeKeyword = includeKeyword;<a name="line.86"></a>
+<span class="sourceLineNo">087</span>    }<a name="line.87"></a>
+<span class="sourceLineNo">088</span><a name="line.88"></a>
+<span class="sourceLineNo">089</span>    public final boolean isIncludeNamespaceDeclaration() {<a name="line.89"></a>
+<span class="sourceLineNo">090</span>        return namespace == NAMESPACE;<a name="line.90"></a>
+<span class="sourceLineNo">091</span>    }<a name="line.91"></a>
+<span class="sourceLineNo">092</span><a name="line.92"></a>
+<span class="sourceLineNo">093</span>    public final void setIncludeNamespaceDeclaration(boolean includeNameSpaceDeclaration) {<a name="line.93"></a>
+<span class="sourceLineNo">094</span>        this.namespace = includeNameSpaceDeclaration ? NAMESPACE : "";<a name="line.94"></a>
+<span class="sourceLineNo">095</span>    }<a name="line.95"></a>
+<span class="sourceLineNo">096</span><a name="line.96"></a>
+<span class="sourceLineNo">097</span>    public void write(Attributes attrs) throws SAXException {<a name="line.97"></a>
+<span class="sourceLineNo">098</span>        startDocument();<a name="line.98"></a>
+<span class="sourceLineNo">099</span>        attrs.writeTo(this);<a name="line.99"></a>
+<span class="sourceLineNo">100</span>        endDocument();<a name="line.100"></a>
+<span class="sourceLineNo">101</span>    }<a name="line.101"></a>
+<span class="sourceLineNo">102</span><a name="line.102"></a>
+<span class="sourceLineNo">103</span>    @Override<a name="line.103"></a>
+<span class="sourceLineNo">104</span>    public void startDataset(DicomInputStream dis) throws IOException {<a name="line.104"></a>
+<span class="sourceLineNo">105</span>        try {<a name="line.105"></a>
+<span class="sourceLineNo">106</span>            startDocument();<a name="line.106"></a>
+<span class="sourceLineNo">107</span>        } catch (SAXException e) {<a name="line.107"></a>
+<span class="sourceLineNo">108</span>            throw new IOException(e);<a name="line.108"></a>
+<span class="sourceLineNo">109</span>        }<a name="line.109"></a>
+<span class="sourceLineNo">110</span>    }<a name="line.110"></a>
+<span class="sourceLineNo">111</span><a name="line.111"></a>
+<span class="sourceLineNo">112</span>    @Override<a name="line.112"></a>
+<span class="sourceLineNo">113</span>    public void endDataset(DicomInputStream dis) throws IOException {<a name="line.113"></a>
+<span class="sourceLineNo">114</span>        try {<a name="line.114"></a>
+<span class="sourceLineNo">115</span>            endDocument();<a name="line.115"></a>
+<span class="sourceLineNo">116</span>        } catch (SAXException e) {<a name="line.116"></a>
+<span class="sourceLineNo">117</span>            throw new IOException(e);<a name="line.117"></a>
+<span class="sourceLineNo">118</span>        }<a name="line.118"></a>
+<span class="sourceLineNo">119</span>    }<a name="line.119"></a>
+<span class="sourceLineNo">120</span><a name="line.120"></a>
+<span class="sourceLineNo">121</span>    private void startDocument() throws SAXException {<a name="line.121"></a>
+<span class="sourceLineNo">122</span>        ch.startDocument();<a name="line.122"></a>
+<span class="sourceLineNo">123</span>        startElement("NativeDicomModel", "xml-space", "preserved");<a name="line.123"></a>
+<span class="sourceLineNo">124</span>    }<a name="line.124"></a>
+<span class="sourceLineNo">125</span><a name="line.125"></a>
+<span class="sourceLineNo">126</span>    private void endDocument() throws SAXException {<a name="line.126"></a>
+<span class="sourceLineNo">127</span>        endElement("NativeDicomModel");<a name="line.127"></a>
+<span class="sourceLineNo">128</span>        ch.endDocument();<a name="line.128"></a>
+<span class="sourceLineNo">129</span>    }<a name="line.129"></a>
+<span class="sourceLineNo">130</span><a name="line.130"></a>
+<span class="sourceLineNo">131</span>    private void startElement(String name, String attrName, int attrValue)<a name="line.131"></a>
+<span class="sourceLineNo">132</span>            throws SAXException {<a name="line.132"></a>
+<span class="sourceLineNo">133</span>        startElement(name, attrName, Integer.toString(attrValue));<a name="line.133"></a>
+<span class="sourceLineNo">134</span>    }<a name="line.134"></a>
+<span class="sourceLineNo">135</span><a name="line.135"></a>
+<span class="sourceLineNo">136</span>    private void startElement(String name, String attrName, String attrValue)<a name="line.136"></a>
+<span class="sourceLineNo">137</span>            throws SAXException {<a name="line.137"></a>
+<span class="sourceLineNo">138</span>        addAttribute(attrName, attrValue);<a name="line.138"></a>
+<span class="sourceLineNo">139</span>        startElement(name);<a name="line.139"></a>
+<span class="sourceLineNo">140</span>    }<a name="line.140"></a>
+<span class="sourceLineNo">141</span><a name="line.141"></a>
+<span class="sourceLineNo">142</span>    private void startElement(String name) throws SAXException {<a name="line.142"></a>
+<span class="sourceLineNo">143</span>        ch.startElement(namespace, name, name, atts);<a name="line.143"></a>
+<span class="sourceLineNo">144</span>        atts.clear();<a name="line.144"></a>
+<span class="sourceLineNo">145</span>    }<a name="line.145"></a>
+<span class="sourceLineNo">146</span><a name="line.146"></a>
+<span class="sourceLineNo">147</span>    private void endElement(String name) throws SAXException {<a name="line.147"></a>
+<span class="sourceLineNo">148</span>        ch.endElement(namespace, name, name);<a name="line.148"></a>
+<span class="sourceLineNo">149</span>    }<a name="line.149"></a>
+<span class="sourceLineNo">150</span><a name="line.150"></a>
+<span class="sourceLineNo">151</span>    private void addAttribute(String name, String value) {<a name="line.151"></a>
+<span class="sourceLineNo">152</span>        atts.addAttribute(namespace, name, name, "NMTOKEN", value);<a name="line.152"></a>
+<span class="sourceLineNo">153</span>    }<a name="line.153"></a>
+<span class="sourceLineNo">154</span><a name="line.154"></a>
+<span class="sourceLineNo">155</span>    public void writeAttribute(int tag, VR vr, Object value,<a name="line.155"></a>
+<span class="sourceLineNo">156</span>            SpecificCharacterSet cs, Attributes attrs) throws SAXException {<a name="line.156"></a>
+<span class="sourceLineNo">157</span>        if (TagUtils.isGroupLength(tag) || TagUtils.isPrivateCreator(tag))<a name="line.157"></a>
+<span class="sourceLineNo">158</span>            return;<a name="line.158"></a>
+<span class="sourceLineNo">159</span><a name="line.159"></a>
+<span class="sourceLineNo">160</span>        String privateCreator = attrs.getPrivateCreator(tag);<a name="line.160"></a>
+<span class="sourceLineNo">161</span>        addAttributes(tag, vr, privateCreator);<a name="line.161"></a>
+<span class="sourceLineNo">162</span>        startElement("DicomAttribute");<a name="line.162"></a>
+<span class="sourceLineNo">163</span>        if (value instanceof Value) {<a name="line.163"></a>
+<span class="sourceLineNo">164</span>            writeAttribute((Value) value, attrs.bigEndian());<a name="line.164"></a>
+<span class="sourceLineNo">165</span>        } else {<a name="line.165"></a>
+<span class="sourceLineNo">166</span>            vr.toXML(value, attrs.bigEndian(), cs, this);<a name="line.166"></a>
+<span class="sourceLineNo">167</span>        }<a name="line.167"></a>
+<span class="sourceLineNo">168</span>        endElement("DicomAttribute");<a name="line.168"></a>
+<span class="sourceLineNo">169</span>    }<a name="line.169"></a>
+<span class="sourceLineNo">170</span><a name="line.170"></a>
+<span class="sourceLineNo">171</span>    private void writeAttribute(Value value, boolean bigEndian)<a name="line.171"></a>
+<span class="sourceLineNo">172</span>            throws SAXException {<a name="line.172"></a>
+<span class="sourceLineNo">173</span>        if (value.isEmpty())<a name="line.173"></a>
+<span class="sourceLineNo">174</span>            return;<a name="line.174"></a>
+<span class="sourceLineNo">175</span><a name="line.175"></a>
+<span class="sourceLineNo">176</span>        if (value instanceof Sequence) {<a name="line.176"></a>
+<span class="sourceLineNo">177</span>            Sequence seq = (Sequence) value;<a name="line.177"></a>
+<span class="sourceLineNo">178</span>            int number = 0;<a name="line.178"></a>
+<span class="sourceLineNo">179</span>            for (Attributes item : seq) {<a name="line.179"></a>
+<span class="sourceLineNo">180</span>                startElement("Item", "number", ++number);<a name="line.180"></a>
+<span class="sourceLineNo">181</span>                item.writeTo(this);<a name="line.181"></a>
+<span class="sourceLineNo">182</span>                endElement("Item");<a name="line.182"></a>
+<span class="sourceLineNo">183</span>            }<a name="line.183"></a>
+<span class="sourceLineNo">184</span>        } else if (value instanceof Fragments) {<a name="line.184"></a>
+<span class="sourceLineNo">185</span>            Fragments frags = (Fragments) value;<a name="line.185"></a>
+<span class="sourceLineNo">186</span>            int number = 0;<a name="line.186"></a>
+<span class="sourceLineNo">187</span>            for (Object frag : frags) {<a name="line.187"></a>
+<span class="sourceLineNo">188</span>                ++number;<a name="line.188"></a>
+<span class="sourceLineNo">189</span>                if (frag instanceof Value &amp;&amp; ((Value) frag).isEmpty())<a name="line.189"></a>
+<span class="sourceLineNo">190</span>                    continue;<a name="line.190"></a>
+<span class="sourceLineNo">191</span>                startElement("DataFragment", "number", number);<a name="line.191"></a>
+<span class="sourceLineNo">192</span>                if (frag instanceof BulkDataLocator)<a name="line.192"></a>
+<span class="sourceLineNo">193</span>                    writeBulkDataLocator((BulkDataLocator) frag);<a name="line.193"></a>
+<span class="sourceLineNo">194</span>                else {<a name="line.194"></a>
+<span class="sourceLineNo">195</span>                    byte[] b = (byte[]) frag;<a name="line.195"></a>
+<span class="sourceLineNo">196</span>                    if (bigEndian)<a name="line.196"></a>
+<span class="sourceLineNo">197</span>                        frags.vr().toggleEndian(b, true);<a name="line.197"></a>
+<span class="sourceLineNo">198</span>                    writeValueBase64(b);<a name="line.198"></a>
+<span class="sourceLineNo">199</span>                }<a name="line.199"></a>
+<span class="sourceLineNo">200</span>                endElement("DataFragment");<a name="line.200"></a>
+<span class="sourceLineNo">201</span>            }<a name="line.201"></a>
+<span class="sourceLineNo">202</span>        } else if (value instanceof BulkDataLocator) {<a name="line.202"></a>
+<span class="sourceLineNo">203</span>            writeBulkDataLocator((BulkDataLocator) value);<a name="line.203"></a>
+<span class="sourceLineNo">204</span>        }<a name="line.204"></a>
+<span class="sourceLineNo">205</span>    }<a name="line.205"></a>
+<span class="sourceLineNo">206</span><a name="line.206"></a>
+<span class="sourceLineNo">207</span>    @Override<a name="line.207"></a>
+<span class="sourceLineNo">208</span>    public void readValue(DicomInputStream dis, Attributes attrs)<a name="line.208"></a>
+<span class="sourceLineNo">209</span>            throws IOException {<a name="line.209"></a>
+<span class="sourceLineNo">210</span>        int tag = dis.tag();<a name="line.210"></a>
+<span class="sourceLineNo">211</span>        VR vr = dis.vr();<a name="line.211"></a>
+<span class="sourceLineNo">212</span>        int len = dis.length();<a name="line.212"></a>
+<span class="sourceLineNo">213</span>        if (TagUtils.isGroupLength(tag) || TagUtils.isPrivateCreator(tag)) {<a name="line.213"></a>
+<span class="sourceLineNo">214</span>            dis.readValue(dis, attrs);<a name="line.214"></a>
+<span class="sourceLineNo">215</span>        } else if (dis.getIncludeBulkData() == IncludeBulkData.NO<a name="line.215"></a>
+<span class="sourceLineNo">216</span>                &amp;&amp; dis.isBulkData(attrs)) {<a name="line.216"></a>
+<span class="sourceLineNo">217</span>            if (len == -1)<a name="line.217"></a>
+<span class="sourceLineNo">218</span>                dis.readValue(dis, attrs);<a name="line.218"></a>
+<span class="sourceLineNo">219</span>            else<a name="line.219"></a>
+<span class="sourceLineNo">220</span>                dis.skipFully(len);<a name="line.220"></a>
+<span class="sourceLineNo">221</span>        } else try {<a name="line.221"></a>
+<span class="sourceLineNo">222</span>            String privateCreator = attrs.getPrivateCreator(tag);<a name="line.222"></a>
+<span class="sourceLineNo">223</span>            addAttributes(tag, vr, privateCreator);<a name="line.223"></a>
+<span class="sourceLineNo">224</span>            startElement("DicomAttribute");<a name="line.224"></a>
+<span class="sourceLineNo">225</span>            if (vr == VR.SQ || len == -1) {<a name="line.225"></a>
+<span class="sourceLineNo">226</span>                dis.readValue(dis, attrs);<a name="line.226"></a>
+<span class="sourceLineNo">227</span>            } else if (len &gt; 0) {<a name="line.227"></a>
+<span class="sourceLineNo">228</span>                if (dis.getIncludeBulkData() ==  IncludeBulkData.LOCATOR<a name="line.228"></a>
+<span class="sourceLineNo">229</span>                        &amp;&amp; dis.isBulkData(attrs)) {<a name="line.229"></a>
+<span class="sourceLineNo">230</span>                    writeBulkDataLocator(dis.createBulkDataLocator());<a name="line.230"></a>
+<span class="sourceLineNo">231</span>                } else {<a name="line.231"></a>
+<span class="sourceLineNo">232</span>                    byte[] b = dis.readValue();<a name="line.232"></a>
+<span class="sourceLineNo">233</span>                    if (tag == Tag.TransferSyntaxUID<a name="line.233"></a>
+<span class="sourceLineNo">234</span>                            || tag == Tag.SpecificCharacterSet)<a name="line.234"></a>
+<span class="sourceLineNo">235</span>                        attrs.setBytes(tag, vr, b);<a name="line.235"></a>
+<span class="sourceLineNo">236</span>                    if (dis.bigEndian())<a name="line.236"></a>
+<span class="sourceLineNo">237</span>                        vr.toggleEndian(b, false);<a name="line.237"></a>
+<span class="sourceLineNo">238</span>                    vr.toXML(b, false, attrs.getSpecificCharacterSet(), this);<a name="line.238"></a>
+<span class="sourceLineNo">239</span>                }<a name="line.239"></a>
+<span class="sourceLineNo">240</span>            }<a name="line.240"></a>
+<span class="sourceLineNo">241</span>            endElement("DicomAttribute");<a name="line.241"></a>
+<span class="sourceLineNo">242</span>        } catch (SAXException e) {<a name="line.242"></a>
+<span class="sourceLineNo">243</span>            throw new IOException(e);<a name="line.243"></a>
+<span class="sourceLineNo">244</span>        }<a name="line.244"></a>
+<span class="sourceLineNo">245</span>    }<a name="line.245"></a>
+<span class="sourceLineNo">246</span><a name="line.246"></a>
+<span class="sourceLineNo">247</span>    private void addAttributes(int tag, VR vr, String privateCreator) {<a name="line.247"></a>
+<span class="sourceLineNo">248</span>        if (privateCreator != null)<a name="line.248"></a>
+<span class="sourceLineNo">249</span>            tag &amp;= 0xffff00ff;<a name="line.249"></a>
+<span class="sourceLineNo">250</span>        if (includeKeyword) {<a name="line.250"></a>
+<span class="sourceLineNo">251</span>            String keyword = ElementDictionary.keywordOf(tag, privateCreator);<a name="line.251"></a>
+<span class="sourceLineNo">252</span>            if (keyword != null &amp;&amp; !keyword.isEmpty())<a name="line.252"></a>
+<span class="sourceLineNo">253</span>                addAttribute("keyword", keyword);<a name="line.253"></a>
+<span class="sourceLineNo">254</span>        }<a name="line.254"></a>
+<span class="sourceLineNo">255</span>        addAttribute("tag", TagUtils.toHexString(tag));<a name="line.255"></a>
+<span class="sourceLineNo">256</span>        if (privateCreator != null)<a name="line.256"></a>
+<span class="sourceLineNo">257</span>            addAttribute("privateCreator", privateCreator);<a name="line.257"></a>
+<span class="sourceLineNo">258</span>        addAttribute("vr", vr.name());<a name="line.258"></a>
+<span class="sourceLineNo">259</span>    }<a name="line.259"></a>
+<span class="sourceLineNo">260</span><a name="line.260"></a>
+<span class="sourceLineNo">261</span>    @Override<a name="line.261"></a>
+<span class="sourceLineNo">262</span>    public void readValue(DicomInputStream dis, Sequence seq)<a name="line.262"></a>
+<span class="sourceLineNo">263</span>            throws IOException {<a name="line.263"></a>
+<span class="sourceLineNo">264</span>        try {<a name="line.264"></a>
+<span class="sourceLineNo">265</span>            startElement("Item", "number", seq.size() + 1);<a name="line.265"></a>
+<span class="sourceLineNo">266</span>            dis.readValue(dis, seq);<a name="line.266"></a>
+<span class="sourceLineNo">267</span>            endElement("Item");<a name="line.267"></a>
+<span class="sourceLineNo">268</span>        } catch (SAXException e) {<a name="line.268"></a>
+<span class="sourceLineNo">269</span>            throw new IOException(e);<a name="line.269"></a>
+<span class="sourceLineNo">270</span>        }<a name="line.270"></a>
+<span class="sourceLineNo">271</span>    }<a name="line.271"></a>
+<span class="sourceLineNo">272</span><a name="line.272"></a>
+<span class="sourceLineNo">273</span>    @Override<a name="line.273"></a>
+<span class="sourceLineNo">274</span>    public void readValue(DicomInputStream dis, Fragments frags)<a name="line.274"></a>
+<span class="sourceLineNo">275</span>            throws IOException {<a name="line.275"></a>
+<span class="sourceLineNo">276</span>        int len = dis.length();<a name="line.276"></a>
+<span class="sourceLineNo">277</span>        if (dis.getIncludeBulkData() == IncludeBulkData.NO<a name="line.277"></a>
+<span class="sourceLineNo">278</span>                &amp;&amp; dis.isBulkDataFragment()) {<a name="line.278"></a>
+<span class="sourceLineNo">279</span>            dis.skipFully(len);<a name="line.279"></a>
+<span class="sourceLineNo">280</span>        } else try {<a name="line.280"></a>
+<span class="sourceLineNo">281</span>            frags.add(ByteUtils.EMPTY_BYTES); // increment size<a name="line.281"></a>
+<span class="sourceLineNo">282</span>            if (len &gt; 0) {<a name="line.282"></a>
+<span class="sourceLineNo">283</span>                startElement("DataFragment", "number", frags.size());<a name="line.283"></a>
+<span class="sourceLineNo">284</span>                if (dis.getIncludeBulkData() == IncludeBulkData.LOCATOR<a name="line.284"></a>
+<span class="sourceLineNo">285</span>                        &amp;&amp; dis.isBulkDataFragment()) {<a name="line.285"></a>
+<span class="sourceLineNo">286</span>                    writeBulkDataLocator(dis.createBulkDataLocator());<a name="line.286"></a>
+<span class="sourceLineNo">287</span>                } else {<a name="line.287"></a>
+<span class="sourceLineNo">288</span>                    byte[] b = dis.readValue();<a name="line.288"></a>
+<span class="sourceLineNo">289</span>                    if (dis.bigEndian())<a name="line.289"></a>
+<span class="sourceLineNo">290</span>                        frags.vr().toggleEndian(b, false);<a name="line.290"></a>
+<span class="sourceLineNo">291</span>                    writeValueBase64(b);<a name="line.291"></a>
+<span class="sourceLineNo">292</span>                }<a name="line.292"></a>
+<span class="sourceLineNo">293</span>                endElement("DataFragment");<a name="line.293"></a>
+<span class="sourceLineNo">294</span>            }<a name="line.294"></a>
+<span class="sourceLineNo">295</span>        } catch (SAXException e) {<a name="line.295"></a>
+<span class="sourceLineNo">296</span>            throw new IOException(e);<a name="line.296"></a>
+<span class="sourceLineNo">297</span>        }<a name="line.297"></a>
+<span class="sourceLineNo">298</span>    }<a name="line.298"></a>
+<span class="sourceLineNo">299</span><a name="line.299"></a>
+<span class="sourceLineNo">300</span>    public void writeValue(int index, String s) throws SAXException {<a name="line.300"></a>
+<span class="sourceLineNo">301</span>        addAttribute("number", Integer.toString(index + 1));<a name="line.301"></a>
+<span class="sourceLineNo">302</span>        writeElement("Value", s);<a name="line.302"></a>
+<span class="sourceLineNo">303</span>    }<a name="line.303"></a>
+<span class="sourceLineNo">304</span><a name="line.304"></a>
+<span class="sourceLineNo">305</span>    public void writeValueBase64(byte[] b) throws SAXException {<a name="line.305"></a>
+<span class="sourceLineNo">306</span>        startElement("Value", "number", "1");<a name="line.306"></a>
+<span class="sourceLineNo">307</span>        char[] buf = buffer;<a name="line.307"></a>
+<span class="sourceLineNo">308</span>        for (int off = 0; off &lt; b.length;) {<a name="line.308"></a>
+<span class="sourceLineNo">309</span>            int len = Math.min(b.length - off, BASE64_CHUNK_LENGTH);<a name="line.309"></a>
+<span class="sourceLineNo">310</span>            Base64.encode(b, off, len, buf, 0);<a name="line.310"></a>
+<span class="sourceLineNo">311</span>            ch.characters(buf, 0, (len * 4 / 3 + 3) &amp; ~3);<a name="line.311"></a>
+<span class="sourceLineNo">312</span>            off += len;<a name="line.312"></a>
+<span class="sourceLineNo">313</span>        }<a name="line.313"></a>
+<span class="sourceLineNo">314</span>        endElement("Value");<a name="line.314"></a>
+<span class="sourceLineNo">315</span>    }<a name="line.315"></a>
+<span class="sourceLineNo">316</span><a name="line.316"></a>
+<span class="sourceLineNo">317</span>    private void writeBulkDataLocator(BulkDataLocator bdl)<a name="line.317"></a>
+<span class="sourceLineNo">318</span>            throws SAXException {<a name="line.318"></a>
+<span class="sourceLineNo">319</span>        startElement("BulkDataLocator"); <a name="line.319"></a>
+<span class="sourceLineNo">320</span>        writeElement("Length", Integer.toString(bdl.length));<a name="line.320"></a>
+<span class="sourceLineNo">321</span>        writeElement("Offset", Long.toString(bdl.offset));<a name="line.321"></a>
+<span class="sourceLineNo">322</span>        writeElement("TransferSyntax", bdl.transferSyntax);<a name="line.322"></a>
+<span class="sourceLineNo">323</span>        writeElement("URI", bdl.uri);<a name="line.323"></a>
+<span class="sourceLineNo">324</span>        endElement("BulkDataLocator");<a name="line.324"></a>
+<span class="sourceLineNo">325</span>    }<a name="line.325"></a>
+<span class="sourceLineNo">326</span><a name="line.326"></a>
+<span class="sourceLineNo">327</span>    private void writeElement(String qname, String s) throws SAXException {<a name="line.327"></a>
+<span class="sourceLineNo">328</span>        if (s != null) {<a name="line.328"></a>
+<span class="sourceLineNo">329</span>            startElement(qname); <a name="line.329"></a>
+<span class="sourceLineNo">330</span>            char[] buf = buffer;<a name="line.330"></a>
+<span class="sourceLineNo">331</span>            for (int off = 0, totlen = s.length(); off &lt; totlen;) {<a name="line.331"></a>
+<span class="sourceLineNo">332</span>                int len = Math.min(totlen - off, buf.length);<a name="line.332"></a>
+<span class="sourceLineNo">333</span>                s.getChars(off, off += len, buf, 0);<a name="line.333"></a>
+<span class="sourceLineNo">334</span>                ch.characters(buf, 0, len);<a name="line.334"></a>
+<span class="sourceLineNo">335</span>            }<a name="line.335"></a>
+<span class="sourceLineNo">336</span>            endElement(qname);<a name="line.336"></a>
+<span class="sourceLineNo">337</span>        }<a name="line.337"></a>
+<span class="sourceLineNo">338</span>    }<a name="line.338"></a>
+<span class="sourceLineNo">339</span><a name="line.339"></a>
+<span class="sourceLineNo">340</span>    public void writePersonName(int index, PersonName pn) throws SAXException {<a name="line.340"></a>
+<span class="sourceLineNo">341</span>        if (!pn.isEmpty()) {<a name="line.341"></a>
+<span class="sourceLineNo">342</span>            startElement("PersonName", "number", index + 1);<a name="line.342"></a>
+<span class="sourceLineNo">343</span>            writePNGroup("Alphabetic", pn, PersonName.Group.Alphabetic);<a name="line.343"></a>
+<span class="sourceLineNo">344</span>            writePNGroup("Ideographic", pn, PersonName.Group.Ideographic);<a name="line.344"></a>
+<span class="sourceLineNo">345</span>            writePNGroup("Phonetic", pn, PersonName.Group.Phonetic);<a name="line.345"></a>
+<span class="sourceLineNo">346</span>            endElement("PersonName");<a name="line.346"></a>
+<span class="sourceLineNo">347</span>        }<a name="line.347"></a>
+<span class="sourceLineNo">348</span>    }<a name="line.348"></a>
+<span class="sourceLineNo">349</span><a name="line.349"></a>
+<span class="sourceLineNo">350</span>    private void writePNGroup(String qname, PersonName pn,<a name="line.350"></a>
+<span class="sourceLineNo">351</span>            PersonName.Group group) throws SAXException {<a name="line.351"></a>
+<span class="sourceLineNo">352</span>        if (pn.contains(group)) {<a name="line.352"></a>
+<span class="sourceLineNo">353</span>            startElement(qname); <a name="line.353"></a>
+<span class="sourceLineNo">354</span>            writeElement("FamilyName",<a name="line.354"></a>
+<span class="sourceLineNo">355</span>                    pn.get(group, PersonName.Component.FamilyName));<a name="line.355"></a>
+<span class="sourceLineNo">356</span>            writeElement("GivenName",<a name="line.356"></a>
+<span class="sourceLineNo">357</span>                    pn.get(group, PersonName.Component.GivenName));<a name="line.357"></a>
+<span class="sourceLineNo">358</span>            writeElement("MiddleName",<a name="line.358"></a>
+<span class="sourceLineNo">359</span>                    pn.get(group, PersonName.Component.MiddleName));<a name="line.359"></a>
+<span class="sourceLineNo">360</span>            writeElement("NamePrefix",<a name="line.360"></a>
+<span class="sourceLineNo">361</span>                    pn.get(group, PersonName.Component.NamePrefix));<a name="line.361"></a>
+<span class="sourceLineNo">362</span>            writeElement("NameSuffix",<a name="line.362"></a>
+<span class="sourceLineNo">363</span>                    pn.get(group, PersonName.Component.NameSuffix));<a name="line.363"></a>
+<span class="sourceLineNo">364</span>            endElement(qname);<a name="line.364"></a>
+<span class="sourceLineNo">365</span>        }<a name="line.365"></a>
+<span class="sourceLineNo">366</span>    }<a name="line.366"></a>
+<span class="sourceLineNo">367</span><a name="line.367"></a>
+<span class="sourceLineNo">368</span>}<a name="line.368"></a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</pre>
+</div>
+</body>
+</html>
