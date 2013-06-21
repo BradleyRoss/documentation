@@ -1,5 +1,7 @@
 bradleyross.dcm4che3.samples
+bradleyross.library.dcm4che3
 bradleyross.library.helpers
+bradleyross.playpen
 org.dcm4che.audit
 org.dcm4che.conf.api
 org.dcm4che.conf.api.hl7

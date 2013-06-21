@@ -263,13 +263,20 @@
 <span class="sourceLineNo">255</span>                a.getConnections(), a.getDevice().listConnections(), <a name="line.255"></a>
 <span class="sourceLineNo">256</span>                b.getConnections(), b.getDevice().listConnections());<a name="line.256"></a>
 <span class="sourceLineNo">257</span>        PreferencesUtils.storeDiff(prefs, "dcmAuditRecordRepositoryDeviceReference",<a name="line.257"></a>
-<span class="sourceLineNo">258</span>                config.deviceRef(a.getAuditRecordRepositoryDeviceName()),<a name="line.258"></a>
-<span class="sourceLineNo">259</span>                config.deviceRef(b.getAuditRecordRepositoryDeviceName()));<a name="line.259"></a>
+<span class="sourceLineNo">258</span>                arrDeviceRef(a),<a name="line.258"></a>
+<span class="sourceLineNo">259</span>                arrDeviceRef(b));<a name="line.259"></a>
 <span class="sourceLineNo">260</span>        PreferencesUtils.storeDiff(prefs, "dicomInstalled",<a name="line.260"></a>
 <span class="sourceLineNo">261</span>                a.getInstalled(),<a name="line.261"></a>
 <span class="sourceLineNo">262</span>                b.getInstalled());<a name="line.262"></a>
 <span class="sourceLineNo">263</span>    }<a name="line.263"></a>
-<span class="sourceLineNo">264</span>}<a name="line.264"></a>
+<span class="sourceLineNo">264</span><a name="line.264"></a>
+<span class="sourceLineNo">265</span>    private String arrDeviceRef(AuditLogger a) {<a name="line.265"></a>
+<span class="sourceLineNo">266</span>        Device arrDevice = a.getAuditRecordRepositoryDevice();<a name="line.266"></a>
+<span class="sourceLineNo">267</span>        return arrDevice != null<a name="line.267"></a>
+<span class="sourceLineNo">268</span>                ? config.deviceRef(arrDevice.getDeviceName())<a name="line.268"></a>
+<span class="sourceLineNo">269</span>                : null;<a name="line.269"></a>
+<span class="sourceLineNo">270</span>    }<a name="line.270"></a>
+<span class="sourceLineNo">271</span>}<a name="line.271"></a>
 
 
 

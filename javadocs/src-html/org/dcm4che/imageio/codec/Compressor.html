@@ -46,321 +46,496 @@
 <span class="sourceLineNo">038</span>package org.dcm4che.imageio.codec;<a name="line.38"></a>
 <span class="sourceLineNo">039</span><a name="line.39"></a>
 <span class="sourceLineNo">040</span>import java.awt.image.BufferedImage;<a name="line.40"></a>
-<span class="sourceLineNo">041</span>import java.awt.image.DataBuffer;<a name="line.41"></a>
-<span class="sourceLineNo">042</span>import java.awt.image.DataBufferByte;<a name="line.42"></a>
-<span class="sourceLineNo">043</span>import java.awt.image.DataBufferShort;<a name="line.43"></a>
-<span class="sourceLineNo">044</span>import java.awt.image.DataBufferUShort;<a name="line.44"></a>
-<span class="sourceLineNo">045</span>import java.io.ByteArrayOutputStream;<a name="line.45"></a>
-<span class="sourceLineNo">046</span>import java.io.Closeable;<a name="line.46"></a>
-<span class="sourceLineNo">047</span>import java.io.FilterOutputStream;<a name="line.47"></a>
-<span class="sourceLineNo">048</span>import java.io.IOException;<a name="line.48"></a>
-<span class="sourceLineNo">049</span>import java.io.OutputStream;<a name="line.49"></a>
-<span class="sourceLineNo">050</span>import java.nio.ByteOrder;<a name="line.50"></a>
-<span class="sourceLineNo">051</span><a name="line.51"></a>
-<span class="sourceLineNo">052</span>import javax.imageio.IIOImage;<a name="line.52"></a>
-<span class="sourceLineNo">053</span>import javax.imageio.ImageWriteParam;<a name="line.53"></a>
-<span class="sourceLineNo">054</span>import javax.imageio.ImageWriter;<a name="line.54"></a>
-<span class="sourceLineNo">055</span>import javax.imageio.stream.FileImageInputStream;<a name="line.55"></a>
-<span class="sourceLineNo">056</span>import javax.imageio.stream.ImageInputStream;<a name="line.56"></a>
-<span class="sourceLineNo">057</span>import javax.imageio.stream.MemoryCacheImageOutputStream;<a name="line.57"></a>
-<span class="sourceLineNo">058</span><a name="line.58"></a>
-<span class="sourceLineNo">059</span>import org.dcm4che.data.Attributes;<a name="line.59"></a>
-<span class="sourceLineNo">060</span>import org.dcm4che.data.BulkDataLocator;<a name="line.60"></a>
-<span class="sourceLineNo">061</span>import org.dcm4che.data.Fragments;<a name="line.61"></a>
-<span class="sourceLineNo">062</span>import org.dcm4che.data.Tag;<a name="line.62"></a>
-<span class="sourceLineNo">063</span>import org.dcm4che.data.UID;<a name="line.63"></a>
-<span class="sourceLineNo">064</span>import org.dcm4che.data.VR;<a name="line.64"></a>
-<span class="sourceLineNo">065</span>import org.dcm4che.data.Value;<a name="line.65"></a>
-<span class="sourceLineNo">066</span>import org.dcm4che.image.Overlays;<a name="line.66"></a>
-<span class="sourceLineNo">067</span>import org.dcm4che.imageio.codec.jpeg.PatchJPEGLS;<a name="line.67"></a>
-<span class="sourceLineNo">068</span>import org.dcm4che.imageio.codec.jpeg.PatchJPEGLSImageOutputStream;<a name="line.68"></a>
-<span class="sourceLineNo">069</span>import org.dcm4che.io.DicomEncodingOptions;<a name="line.69"></a>
-<span class="sourceLineNo">070</span>import org.dcm4che.io.DicomOutputStream;<a name="line.70"></a>
-<span class="sourceLineNo">071</span>import org.dcm4che.util.Property;<a name="line.71"></a>
-<span class="sourceLineNo">072</span>import org.slf4j.Logger;<a name="line.72"></a>
-<span class="sourceLineNo">073</span>import org.slf4j.LoggerFactory;<a name="line.73"></a>
-<span class="sourceLineNo">074</span><a name="line.74"></a>
-<span class="sourceLineNo">075</span>/**<a name="line.75"></a>
-<span class="sourceLineNo">076</span> * @author Gunter Zeilinger &lt;gunterze@gmail.com&gt;<a name="line.76"></a>
-<span class="sourceLineNo">077</span> *<a name="line.77"></a>
-<span class="sourceLineNo">078</span> */<a name="line.78"></a>
-<span class="sourceLineNo">079</span>public class Compressor extends Decompressor implements Closeable {<a name="line.79"></a>
-<span class="sourceLineNo">080</span><a name="line.80"></a>
-<span class="sourceLineNo">081</span>    private static final Logger LOG = LoggerFactory.getLogger(Compressor.class);<a name="line.81"></a>
-<span class="sourceLineNo">082</span><a name="line.82"></a>
-<span class="sourceLineNo">083</span>    private BulkDataLocator pixeldata;<a name="line.83"></a>
-<span class="sourceLineNo">084</span>    private ImageWriter compressor;<a name="line.84"></a>
-<span class="sourceLineNo">085</span>    private PatchJPEGLS patchJPEGLS;<a name="line.85"></a>
-<span class="sourceLineNo">086</span>    private ImageWriteParam compressParam;<a name="line.86"></a>
-<span class="sourceLineNo">087</span>    private ImageInputStream iis;<a name="line.87"></a>
-<span class="sourceLineNo">088</span>    private IOException ex;<a name="line.88"></a>
-<span class="sourceLineNo">089</span>    private int[] embeddedOverlays;<a name="line.89"></a>
-<span class="sourceLineNo">090</span><a name="line.90"></a>
-<span class="sourceLineNo">091</span>    public Compressor(Attributes dataset, String tsuid) {<a name="line.91"></a>
-<span class="sourceLineNo">092</span>        super(dataset, tsuid);<a name="line.92"></a>
-<span class="sourceLineNo">093</span><a name="line.93"></a>
-<span class="sourceLineNo">094</span>        Object pixeldata = dataset.getValue(Tag.PixelData);<a name="line.94"></a>
-<span class="sourceLineNo">095</span>        if (pixeldata == null)<a name="line.95"></a>
-<span class="sourceLineNo">096</span>            return;<a name="line.96"></a>
-<span class="sourceLineNo">097</span><a name="line.97"></a>
-<span class="sourceLineNo">098</span>        if (pixeldata instanceof BulkDataLocator) {<a name="line.98"></a>
-<span class="sourceLineNo">099</span>            this.pixeldata = (BulkDataLocator) pixeldata;<a name="line.99"></a>
-<span class="sourceLineNo">100</span>            if (pmi.isSubSambled())<a name="line.100"></a>
-<span class="sourceLineNo">101</span>                throw new UnsupportedOperationException(<a name="line.101"></a>
-<span class="sourceLineNo">102</span>                        "Unsupported Photometric Interpretation: " + pmi);<a name="line.102"></a>
-<span class="sourceLineNo">103</span>            if (this.pixeldata.length &lt; length)<a name="line.103"></a>
-<span class="sourceLineNo">104</span>                throw new IllegalArgumentException(<a name="line.104"></a>
-<span class="sourceLineNo">105</span>                        "Pixel data too short: " + this.pixeldata.length<a name="line.105"></a>
-<span class="sourceLineNo">106</span>                        + " instead " + length + " bytes");<a name="line.106"></a>
-<span class="sourceLineNo">107</span>        }<a name="line.107"></a>
-<span class="sourceLineNo">108</span>        embeddedOverlays = Overlays.getEmbeddedOverlayGroupOffsets(dataset);<a name="line.108"></a>
-<span class="sourceLineNo">109</span>    }<a name="line.109"></a>
-<span class="sourceLineNo">110</span><a name="line.110"></a>
-<span class="sourceLineNo">111</span>    public boolean compress(String tsuid, Property... params)<a name="line.111"></a>
-<span class="sourceLineNo">112</span>            throws IOException {<a name="line.112"></a>
-<span class="sourceLineNo">113</span><a name="line.113"></a>
-<span class="sourceLineNo">114</span>        if (tsuid == null)<a name="line.114"></a>
-<span class="sourceLineNo">115</span>            throw new NullPointerException("desttsuid");<a name="line.115"></a>
-<span class="sourceLineNo">116</span><a name="line.116"></a>
-<span class="sourceLineNo">117</span>        if (frames == 0)<a name="line.117"></a>
-<span class="sourceLineNo">118</span>            return false;<a name="line.118"></a>
-<span class="sourceLineNo">119</span><a name="line.119"></a>
-<span class="sourceLineNo">120</span>        ImageWriterFactory.ImageWriterParam param =<a name="line.120"></a>
-<span class="sourceLineNo">121</span>                ImageWriterFactory.getImageWriterParam(tsuid);<a name="line.121"></a>
-<span class="sourceLineNo">122</span>        if (param == null)<a name="line.122"></a>
-<span class="sourceLineNo">123</span>            throw new UnsupportedOperationException(<a name="line.123"></a>
-<span class="sourceLineNo">124</span>                    "Unsupported Transfer Syntax: " + tsuid);<a name="line.124"></a>
-<span class="sourceLineNo">125</span><a name="line.125"></a>
-<span class="sourceLineNo">126</span>        this.compressor = ImageWriterFactory.getImageWriter(param);<a name="line.126"></a>
-<span class="sourceLineNo">127</span>        this.patchJPEGLS = param.patchJPEGLS;<a name="line.127"></a>
-<span class="sourceLineNo">128</span><a name="line.128"></a>
-<span class="sourceLineNo">129</span>        this.compressParam = compressor.getDefaultWriteParam();<a name="line.129"></a>
-<span class="sourceLineNo">130</span>        Property[] imageWriteParams = param.getImageWriteParams();<a name="line.130"></a>
-<span class="sourceLineNo">131</span>        if (imageWriteParams.length != 0 || params.length != 0)<a name="line.131"></a>
-<span class="sourceLineNo">132</span>            compressParam.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);<a name="line.132"></a>
-<span class="sourceLineNo">133</span>        for (Property property : imageWriteParams)<a name="line.133"></a>
-<span class="sourceLineNo">134</span>            property.setAt(compressParam);<a name="line.134"></a>
-<span class="sourceLineNo">135</span>        for (Property property : params)<a name="line.135"></a>
-<span class="sourceLineNo">136</span>            property.setAt(compressParam);<a name="line.136"></a>
-<span class="sourceLineNo">137</span><a name="line.137"></a>
-<span class="sourceLineNo">138</span>        TransferSyntaxType tstype = TransferSyntaxType.forUID(tsuid);<a name="line.138"></a>
-<span class="sourceLineNo">139</span>        adjustDestination(Math.min(bitsStored, tstype.getMaxBitsStored()),<a name="line.139"></a>
-<span class="sourceLineNo">140</span>                signed &amp;&amp; tstype.canEncodeSigned());<a name="line.140"></a>
-<span class="sourceLineNo">141</span>        adjustAttributes(tsuid, tstype.getPlanarConfiguration());<a name="line.141"></a>
-<span class="sourceLineNo">142</span>        Fragments compressedPixeldata = <a name="line.142"></a>
-<span class="sourceLineNo">143</span>                dataset.newFragments(Tag.PixelData, VR.OB, frames + 1);<a name="line.143"></a>
-<span class="sourceLineNo">144</span>        compressedPixeldata.add(Value.NULL);<a name="line.144"></a>
-<span class="sourceLineNo">145</span>        for (int i = 0; i &lt; frames; i++) {<a name="line.145"></a>
-<span class="sourceLineNo">146</span>            CompressedFrame frame = new CompressedFrame(i);<a name="line.146"></a>
-<span class="sourceLineNo">147</span>            if (embeddedOverlays.length != 0)<a name="line.147"></a>
-<span class="sourceLineNo">148</span>                frame.compress();<a name="line.148"></a>
-<span class="sourceLineNo">149</span>            compressedPixeldata.add(frame);<a name="line.149"></a>
-<span class="sourceLineNo">150</span>        }<a name="line.150"></a>
-<span class="sourceLineNo">151</span>        for (int gg0000 : embeddedOverlays) {<a name="line.151"></a>
-<span class="sourceLineNo">152</span>            dataset.setInt(Tag.OverlayBitsAllocated | gg0000, VR.US, 1);<a name="line.152"></a>
-<span class="sourceLineNo">153</span>            dataset.setInt(Tag.OverlayBitPosition | gg0000, VR.US, 0);<a name="line.153"></a>
+<span class="sourceLineNo">041</span>import java.awt.image.ComponentSampleModel;<a name="line.41"></a>
+<span class="sourceLineNo">042</span>import java.awt.image.DataBuffer;<a name="line.42"></a>
+<span class="sourceLineNo">043</span>import java.awt.image.DataBufferByte;<a name="line.43"></a>
+<span class="sourceLineNo">044</span>import java.awt.image.DataBufferShort;<a name="line.44"></a>
+<span class="sourceLineNo">045</span>import java.awt.image.DataBufferUShort;<a name="line.45"></a>
+<span class="sourceLineNo">046</span>import java.awt.image.WritableRaster;<a name="line.46"></a>
+<span class="sourceLineNo">047</span>import java.io.ByteArrayOutputStream;<a name="line.47"></a>
+<span class="sourceLineNo">048</span>import java.io.Closeable;<a name="line.48"></a>
+<span class="sourceLineNo">049</span>import java.io.FilterOutputStream;<a name="line.49"></a>
+<span class="sourceLineNo">050</span>import java.io.IOException;<a name="line.50"></a>
+<span class="sourceLineNo">051</span>import java.io.OutputStream;<a name="line.51"></a>
+<span class="sourceLineNo">052</span>import java.nio.ByteOrder;<a name="line.52"></a>
+<span class="sourceLineNo">053</span><a name="line.53"></a>
+<span class="sourceLineNo">054</span>import javax.imageio.IIOImage;<a name="line.54"></a>
+<span class="sourceLineNo">055</span>import javax.imageio.ImageReadParam;<a name="line.55"></a>
+<span class="sourceLineNo">056</span>import javax.imageio.ImageReader;<a name="line.56"></a>
+<span class="sourceLineNo">057</span>import javax.imageio.ImageWriteParam;<a name="line.57"></a>
+<span class="sourceLineNo">058</span>import javax.imageio.ImageWriter;<a name="line.58"></a>
+<span class="sourceLineNo">059</span>import javax.imageio.stream.FileImageInputStream;<a name="line.59"></a>
+<span class="sourceLineNo">060</span>import javax.imageio.stream.ImageInputStream;<a name="line.60"></a>
+<span class="sourceLineNo">061</span>import javax.imageio.stream.MemoryCacheImageOutputStream;<a name="line.61"></a>
+<span class="sourceLineNo">062</span><a name="line.62"></a>
+<span class="sourceLineNo">063</span>import org.dcm4che.data.Attributes;<a name="line.63"></a>
+<span class="sourceLineNo">064</span>import org.dcm4che.data.BulkDataLocator;<a name="line.64"></a>
+<span class="sourceLineNo">065</span>import org.dcm4che.data.Fragments;<a name="line.65"></a>
+<span class="sourceLineNo">066</span>import org.dcm4che.data.Tag;<a name="line.66"></a>
+<span class="sourceLineNo">067</span>import org.dcm4che.data.UID;<a name="line.67"></a>
+<span class="sourceLineNo">068</span>import org.dcm4che.data.VR;<a name="line.68"></a>
+<span class="sourceLineNo">069</span>import org.dcm4che.data.Value;<a name="line.69"></a>
+<span class="sourceLineNo">070</span>import org.dcm4che.image.Overlays;<a name="line.70"></a>
+<span class="sourceLineNo">071</span>import org.dcm4che.imageio.codec.jpeg.PatchJPEGLS;<a name="line.71"></a>
+<span class="sourceLineNo">072</span>import org.dcm4che.imageio.codec.jpeg.PatchJPEGLSImageOutputStream;<a name="line.72"></a>
+<span class="sourceLineNo">073</span>import org.dcm4che.io.DicomEncodingOptions;<a name="line.73"></a>
+<span class="sourceLineNo">074</span>import org.dcm4che.io.DicomOutputStream;<a name="line.74"></a>
+<span class="sourceLineNo">075</span>import org.dcm4che.util.Property;<a name="line.75"></a>
+<span class="sourceLineNo">076</span>import org.slf4j.Logger;<a name="line.76"></a>
+<span class="sourceLineNo">077</span>import org.slf4j.LoggerFactory;<a name="line.77"></a>
+<span class="sourceLineNo">078</span><a name="line.78"></a>
+<span class="sourceLineNo">079</span>/**<a name="line.79"></a>
+<span class="sourceLineNo">080</span> * @author Gunter Zeilinger &lt;gunterze@gmail.com&gt;<a name="line.80"></a>
+<span class="sourceLineNo">081</span> *<a name="line.81"></a>
+<span class="sourceLineNo">082</span> */<a name="line.82"></a>
+<span class="sourceLineNo">083</span>public class Compressor extends Decompressor implements Closeable {<a name="line.83"></a>
+<span class="sourceLineNo">084</span><a name="line.84"></a>
+<span class="sourceLineNo">085</span>    private static final Logger LOG = LoggerFactory.getLogger(Compressor.class);<a name="line.85"></a>
+<span class="sourceLineNo">086</span><a name="line.86"></a>
+<span class="sourceLineNo">087</span>    private BulkDataLocator pixeldata;<a name="line.87"></a>
+<span class="sourceLineNo">088</span>    private ImageWriter compressor;<a name="line.88"></a>
+<span class="sourceLineNo">089</span>    private ImageReader verifier;<a name="line.89"></a>
+<span class="sourceLineNo">090</span>    private PatchJPEGLS patchJPEGLS;<a name="line.90"></a>
+<span class="sourceLineNo">091</span>    private ImageWriteParam compressParam;<a name="line.91"></a>
+<span class="sourceLineNo">092</span>    private ImageInputStream iis;<a name="line.92"></a>
+<span class="sourceLineNo">093</span>    private IOException ex;<a name="line.93"></a>
+<span class="sourceLineNo">094</span>    private int[] embeddedOverlays;<a name="line.94"></a>
+<span class="sourceLineNo">095</span>    private int maxPixelValueError = -1;<a name="line.95"></a>
+<span class="sourceLineNo">096</span>    private int avgPixelValueBlockSize = 1;<a name="line.96"></a>
+<span class="sourceLineNo">097</span>    private BufferedImage bi2;<a name="line.97"></a>
+<span class="sourceLineNo">098</span><a name="line.98"></a>
+<span class="sourceLineNo">099</span>    private ImageReadParam verifyParam;<a name="line.99"></a>
+<span class="sourceLineNo">100</span><a name="line.100"></a>
+<span class="sourceLineNo">101</span>    public Compressor(Attributes dataset, String from) {<a name="line.101"></a>
+<span class="sourceLineNo">102</span>        super(dataset, from);<a name="line.102"></a>
+<span class="sourceLineNo">103</span><a name="line.103"></a>
+<span class="sourceLineNo">104</span>        Object pixeldata = dataset.getValue(Tag.PixelData);<a name="line.104"></a>
+<span class="sourceLineNo">105</span>        if (pixeldata == null)<a name="line.105"></a>
+<span class="sourceLineNo">106</span>            return;<a name="line.106"></a>
+<span class="sourceLineNo">107</span><a name="line.107"></a>
+<span class="sourceLineNo">108</span>        if (pixeldata instanceof BulkDataLocator) {<a name="line.108"></a>
+<span class="sourceLineNo">109</span>            this.pixeldata = (BulkDataLocator) pixeldata;<a name="line.109"></a>
+<span class="sourceLineNo">110</span>            if (pmi.isSubSambled())<a name="line.110"></a>
+<span class="sourceLineNo">111</span>                throw new UnsupportedOperationException(<a name="line.111"></a>
+<span class="sourceLineNo">112</span>                        "Unsupported Photometric Interpretation: " + pmi);<a name="line.112"></a>
+<span class="sourceLineNo">113</span>            if (this.pixeldata.length &lt; length)<a name="line.113"></a>
+<span class="sourceLineNo">114</span>                throw new IllegalArgumentException(<a name="line.114"></a>
+<span class="sourceLineNo">115</span>                        "Pixel data too short: " + this.pixeldata.length<a name="line.115"></a>
+<span class="sourceLineNo">116</span>                        + " instead " + length + " bytes");<a name="line.116"></a>
+<span class="sourceLineNo">117</span>        }<a name="line.117"></a>
+<span class="sourceLineNo">118</span>        embeddedOverlays = Overlays.getEmbeddedOverlayGroupOffsets(dataset);<a name="line.118"></a>
+<span class="sourceLineNo">119</span>    }<a name="line.119"></a>
+<span class="sourceLineNo">120</span><a name="line.120"></a>
+<span class="sourceLineNo">121</span>    public boolean compress(String tsuid, Property... params)<a name="line.121"></a>
+<span class="sourceLineNo">122</span>            throws IOException {<a name="line.122"></a>
+<span class="sourceLineNo">123</span><a name="line.123"></a>
+<span class="sourceLineNo">124</span>        if (tsuid == null)<a name="line.124"></a>
+<span class="sourceLineNo">125</span>            throw new NullPointerException("desttsuid");<a name="line.125"></a>
+<span class="sourceLineNo">126</span><a name="line.126"></a>
+<span class="sourceLineNo">127</span>        if (frames == 0)<a name="line.127"></a>
+<span class="sourceLineNo">128</span>            return false;<a name="line.128"></a>
+<span class="sourceLineNo">129</span><a name="line.129"></a>
+<span class="sourceLineNo">130</span>        ImageWriterFactory.ImageWriterParam param =<a name="line.130"></a>
+<span class="sourceLineNo">131</span>                ImageWriterFactory.getImageWriterParam(tsuid);<a name="line.131"></a>
+<span class="sourceLineNo">132</span>        if (param == null)<a name="line.132"></a>
+<span class="sourceLineNo">133</span>            throw new UnsupportedOperationException(<a name="line.133"></a>
+<span class="sourceLineNo">134</span>                    "Unsupported Transfer Syntax: " + tsuid);<a name="line.134"></a>
+<span class="sourceLineNo">135</span><a name="line.135"></a>
+<span class="sourceLineNo">136</span>        this.compressor = ImageWriterFactory.getImageWriter(param);<a name="line.136"></a>
+<span class="sourceLineNo">137</span>        LOG.debug("Compressor: {}", compressor.getClass().getName());<a name="line.137"></a>
+<span class="sourceLineNo">138</span>        this.patchJPEGLS = param.patchJPEGLS;<a name="line.138"></a>
+<span class="sourceLineNo">139</span><a name="line.139"></a>
+<span class="sourceLineNo">140</span>        this.compressParam = compressor.getDefaultWriteParam();<a name="line.140"></a>
+<span class="sourceLineNo">141</span>        int count = 0;<a name="line.141"></a>
+<span class="sourceLineNo">142</span>        for (Property property : cat(param.getImageWriteParams(), params)) {<a name="line.142"></a>
+<span class="sourceLineNo">143</span>            String name = property.getName();<a name="line.143"></a>
+<span class="sourceLineNo">144</span>            if (name.equals("maxPixelValueError"))<a name="line.144"></a>
+<span class="sourceLineNo">145</span>                this.maxPixelValueError = ((Number) property.getValue()).intValue();<a name="line.145"></a>
+<span class="sourceLineNo">146</span>            else if (name.equals("avgPixelValueBlockSize"))<a name="line.146"></a>
+<span class="sourceLineNo">147</span>                this.avgPixelValueBlockSize = ((Number) property.getValue()).intValue();<a name="line.147"></a>
+<span class="sourceLineNo">148</span>            else {<a name="line.148"></a>
+<span class="sourceLineNo">149</span>                if (count++ == 0)<a name="line.149"></a>
+<span class="sourceLineNo">150</span>                    compressParam.setCompressionMode(<a name="line.150"></a>
+<span class="sourceLineNo">151</span>                            ImageWriteParam.MODE_EXPLICIT);<a name="line.151"></a>
+<span class="sourceLineNo">152</span>                property.setAt(compressParam);<a name="line.152"></a>
+<span class="sourceLineNo">153</span>            }<a name="line.153"></a>
 <span class="sourceLineNo">154</span>        }<a name="line.154"></a>
-<span class="sourceLineNo">155</span>        return true;<a name="line.155"></a>
-<span class="sourceLineNo">156</span>    }<a name="line.156"></a>
-<span class="sourceLineNo">157</span><a name="line.157"></a>
-<span class="sourceLineNo">158</span>    private void adjustAttributes(String tsuid, int planarConfiguration) {<a name="line.158"></a>
-<span class="sourceLineNo">159</span>        if (samples &gt; 1) {<a name="line.159"></a>
-<span class="sourceLineNo">160</span>            dataset.setString(Tag.PhotometricInterpretation, VR.CS, <a name="line.160"></a>
-<span class="sourceLineNo">161</span>                    (decompressor != null ? pmi.decompress() : pmi)<a name="line.161"></a>
-<span class="sourceLineNo">162</span>                            .compress(tsuid).toString());<a name="line.162"></a>
-<span class="sourceLineNo">163</span> <a name="line.163"></a>
-<span class="sourceLineNo">164</span>            dataset.setInt(Tag.PlanarConfiguration, VR.US, planarConfiguration);<a name="line.164"></a>
-<span class="sourceLineNo">165</span>        }<a name="line.165"></a>
-<span class="sourceLineNo">166</span>    }<a name="line.166"></a>
+<span class="sourceLineNo">155</span><a name="line.155"></a>
+<span class="sourceLineNo">156</span>        if (maxPixelValueError &gt;= 0) {<a name="line.156"></a>
+<span class="sourceLineNo">157</span>            ImageReaderFactory.ImageReaderParam readerParam =<a name="line.157"></a>
+<span class="sourceLineNo">158</span>                    ImageReaderFactory.getImageReaderParam(tsuid);<a name="line.158"></a>
+<span class="sourceLineNo">159</span>            if (readerParam == null)<a name="line.159"></a>
+<span class="sourceLineNo">160</span>                throw new UnsupportedOperationException(<a name="line.160"></a>
+<span class="sourceLineNo">161</span>                        "Unsupported Transfer Syntax: " + tsuid);<a name="line.161"></a>
+<span class="sourceLineNo">162</span><a name="line.162"></a>
+<span class="sourceLineNo">163</span>            this.verifier = ImageReaderFactory.getImageReader(readerParam);<a name="line.163"></a>
+<span class="sourceLineNo">164</span>            this.verifyParam = verifier.getDefaultReadParam();<a name="line.164"></a>
+<span class="sourceLineNo">165</span>            LOG.debug("Verifier: {}", verifier.getClass().getName());<a name="line.165"></a>
+<span class="sourceLineNo">166</span>        }<a name="line.166"></a>
 <span class="sourceLineNo">167</span><a name="line.167"></a>
-<span class="sourceLineNo">168</span>    public void close() {<a name="line.168"></a>
-<span class="sourceLineNo">169</span>        if (iis != null)<a name="line.169"></a>
-<span class="sourceLineNo">170</span>            try { iis.close(); } catch (IOException ignore) {}<a name="line.170"></a>
-<span class="sourceLineNo">171</span>        dispose();<a name="line.171"></a>
-<span class="sourceLineNo">172</span>    }<a name="line.172"></a>
-<span class="sourceLineNo">173</span><a name="line.173"></a>
-<span class="sourceLineNo">174</span>    @Override<a name="line.174"></a>
-<span class="sourceLineNo">175</span>    public void dispose() {<a name="line.175"></a>
-<span class="sourceLineNo">176</span>        super.dispose();<a name="line.176"></a>
-<span class="sourceLineNo">177</span><a name="line.177"></a>
-<span class="sourceLineNo">178</span>        if (compressor != null)<a name="line.178"></a>
-<span class="sourceLineNo">179</span>            compressor.dispose();<a name="line.179"></a>
-<span class="sourceLineNo">180</span><a name="line.180"></a>
-<span class="sourceLineNo">181</span>        compressor = null;<a name="line.181"></a>
-<span class="sourceLineNo">182</span>    }<a name="line.182"></a>
-<span class="sourceLineNo">183</span><a name="line.183"></a>
-<span class="sourceLineNo">184</span>    private class CompressedFrame implements Value {<a name="line.184"></a>
-<span class="sourceLineNo">185</span><a name="line.185"></a>
-<span class="sourceLineNo">186</span>        private int frameIndex;<a name="line.186"></a>
-<span class="sourceLineNo">187</span>        private CacheOutputStream cacheout = new CacheOutputStream();<a name="line.187"></a>
-<span class="sourceLineNo">188</span>        private MemoryCacheImageOutputStream cache;<a name="line.188"></a>
-<span class="sourceLineNo">189</span><a name="line.189"></a>
-<span class="sourceLineNo">190</span>        public CompressedFrame(int frameIndex) throws IOException {<a name="line.190"></a>
-<span class="sourceLineNo">191</span>            this.frameIndex = frameIndex;<a name="line.191"></a>
-<span class="sourceLineNo">192</span>        }<a name="line.192"></a>
-<span class="sourceLineNo">193</span><a name="line.193"></a>
-<span class="sourceLineNo">194</span>        @Override<a name="line.194"></a>
-<span class="sourceLineNo">195</span>        public boolean isEmpty() {<a name="line.195"></a>
-<span class="sourceLineNo">196</span>            return false;<a name="line.196"></a>
-<span class="sourceLineNo">197</span>        }<a name="line.197"></a>
-<span class="sourceLineNo">198</span><a name="line.198"></a>
-<span class="sourceLineNo">199</span>        @Override<a name="line.199"></a>
-<span class="sourceLineNo">200</span>        public byte[] toBytes(VR vr, boolean bigEndian) throws IOException {<a name="line.200"></a>
-<span class="sourceLineNo">201</span>            ByteArrayOutputStream out = new ByteArrayOutputStream();<a name="line.201"></a>
-<span class="sourceLineNo">202</span>            writeTo(out);<a name="line.202"></a>
-<span class="sourceLineNo">203</span>            return out.toByteArray();<a name="line.203"></a>
-<span class="sourceLineNo">204</span>        }<a name="line.204"></a>
-<span class="sourceLineNo">205</span><a name="line.205"></a>
-<span class="sourceLineNo">206</span>        @Override<a name="line.206"></a>
-<span class="sourceLineNo">207</span>        public void writeTo(DicomOutputStream out, VR vr) throws IOException {<a name="line.207"></a>
-<span class="sourceLineNo">208</span>            writeTo(out);<a name="line.208"></a>
-<span class="sourceLineNo">209</span>        }<a name="line.209"></a>
-<span class="sourceLineNo">210</span><a name="line.210"></a>
-<span class="sourceLineNo">211</span>        @Override<a name="line.211"></a>
-<span class="sourceLineNo">212</span>        public int calcLength(DicomEncodingOptions encOpts, boolean explicitVR, VR vr) {<a name="line.212"></a>
-<span class="sourceLineNo">213</span>            return getEncodedLength(encOpts, explicitVR, vr);<a name="line.213"></a>
-<span class="sourceLineNo">214</span>        }<a name="line.214"></a>
-<span class="sourceLineNo">215</span><a name="line.215"></a>
-<span class="sourceLineNo">216</span>        @Override<a name="line.216"></a>
-<span class="sourceLineNo">217</span>        public int getEncodedLength(DicomEncodingOptions encOpts, boolean explicitVR, VR vr) {<a name="line.217"></a>
-<span class="sourceLineNo">218</span>            try {<a name="line.218"></a>
-<span class="sourceLineNo">219</span>                compress();<a name="line.219"></a>
-<span class="sourceLineNo">220</span>            } catch (IOException e) {<a name="line.220"></a>
-<span class="sourceLineNo">221</span>                return -1;<a name="line.221"></a>
-<span class="sourceLineNo">222</span>            }<a name="line.222"></a>
-<span class="sourceLineNo">223</span>            return (((int) cache.length()) + 1) &amp; ~1;<a name="line.223"></a>
-<span class="sourceLineNo">224</span>        }<a name="line.224"></a>
-<span class="sourceLineNo">225</span>        <a name="line.225"></a>
-<span class="sourceLineNo">226</span>        private void writeTo(OutputStream out) throws IOException {<a name="line.226"></a>
-<span class="sourceLineNo">227</span>            compress();<a name="line.227"></a>
-<span class="sourceLineNo">228</span>            try {<a name="line.228"></a>
-<span class="sourceLineNo">229</span>                cacheout.set(out);<a name="line.229"></a>
-<span class="sourceLineNo">230</span>                cache.flush();<a name="line.230"></a>
-<span class="sourceLineNo">231</span>                if ((cache.length() &amp; 1) != 0)<a name="line.231"></a>
-<span class="sourceLineNo">232</span>                    out.write(0);<a name="line.232"></a>
-<span class="sourceLineNo">233</span>            } finally {<a name="line.233"></a>
-<span class="sourceLineNo">234</span>                try { cache.close(); } catch (IOException ignore) {}<a name="line.234"></a>
-<span class="sourceLineNo">235</span>                cache = null;<a name="line.235"></a>
-<span class="sourceLineNo">236</span>                LOG.debug("Flushed frame #{} from memory", frameIndex + 1);<a name="line.236"></a>
-<span class="sourceLineNo">237</span>            }<a name="line.237"></a>
-<span class="sourceLineNo">238</span>        }<a name="line.238"></a>
-<span class="sourceLineNo">239</span><a name="line.239"></a>
-<span class="sourceLineNo">240</span>        private void compress() throws IOException {<a name="line.240"></a>
-<span class="sourceLineNo">241</span>            if (cache != null)<a name="line.241"></a>
-<span class="sourceLineNo">242</span>                return;<a name="line.242"></a>
+<span class="sourceLineNo">168</span>        TransferSyntaxType tstype = TransferSyntaxType.forUID(tsuid);<a name="line.168"></a>
+<span class="sourceLineNo">169</span>        if (decompressor == null || super.tstype == TransferSyntaxType.RLE)<a name="line.169"></a>
+<span class="sourceLineNo">170</span>            bi = createBufferedImage(<a name="line.170"></a>
+<span class="sourceLineNo">171</span>                    Math.min(bitsStored, tstype.getMaxBitsStored()),<a name="line.171"></a>
+<span class="sourceLineNo">172</span>                    super.tstype == TransferSyntaxType.RLE || banded,<a name="line.172"></a>
+<span class="sourceLineNo">173</span>                    signed &amp;&amp; tstype.canEncodeSigned());<a name="line.173"></a>
+<span class="sourceLineNo">174</span>        Fragments compressedPixeldata = <a name="line.174"></a>
+<span class="sourceLineNo">175</span>                dataset.newFragments(Tag.PixelData, VR.OB, frames + 1);<a name="line.175"></a>
+<span class="sourceLineNo">176</span>        compressedPixeldata.add(Value.NULL);<a name="line.176"></a>
+<span class="sourceLineNo">177</span>        for (int i = 0; i &lt; frames; i++) {<a name="line.177"></a>
+<span class="sourceLineNo">178</span>            CompressedFrame frame = new CompressedFrame(i);<a name="line.178"></a>
+<span class="sourceLineNo">179</span>            if (embeddedOverlays.length != 0)<a name="line.179"></a>
+<span class="sourceLineNo">180</span>                frame.compress();<a name="line.180"></a>
+<span class="sourceLineNo">181</span>            compressedPixeldata.add(frame);<a name="line.181"></a>
+<span class="sourceLineNo">182</span>        }<a name="line.182"></a>
+<span class="sourceLineNo">183</span>        if (samples &gt; 1) {<a name="line.183"></a>
+<span class="sourceLineNo">184</span>            dataset.setString(Tag.PhotometricInterpretation, VR.CS, <a name="line.184"></a>
+<span class="sourceLineNo">185</span>                    (decompressor != null ? pmi.decompress() : pmi)<a name="line.185"></a>
+<span class="sourceLineNo">186</span>                            .compress(tsuid).toString());<a name="line.186"></a>
+<span class="sourceLineNo">187</span>            dataset.setInt(Tag.PlanarConfiguration, VR.US, <a name="line.187"></a>
+<span class="sourceLineNo">188</span>                    tstype.getPlanarConfiguration());<a name="line.188"></a>
+<span class="sourceLineNo">189</span>        }<a name="line.189"></a>
+<span class="sourceLineNo">190</span>        for (int gg0000 : embeddedOverlays) {<a name="line.190"></a>
+<span class="sourceLineNo">191</span>            dataset.setInt(Tag.OverlayBitsAllocated | gg0000, VR.US, 1);<a name="line.191"></a>
+<span class="sourceLineNo">192</span>            dataset.setInt(Tag.OverlayBitPosition | gg0000, VR.US, 0);<a name="line.192"></a>
+<span class="sourceLineNo">193</span>        }<a name="line.193"></a>
+<span class="sourceLineNo">194</span>        return true;<a name="line.194"></a>
+<span class="sourceLineNo">195</span>    }<a name="line.195"></a>
+<span class="sourceLineNo">196</span><a name="line.196"></a>
+<span class="sourceLineNo">197</span>    private Property[] cat(Property[] a, Property[] b) {<a name="line.197"></a>
+<span class="sourceLineNo">198</span>        if (a.length == 0)<a name="line.198"></a>
+<span class="sourceLineNo">199</span>            return b;<a name="line.199"></a>
+<span class="sourceLineNo">200</span>        if (b.length == 0)<a name="line.200"></a>
+<span class="sourceLineNo">201</span>            return a;<a name="line.201"></a>
+<span class="sourceLineNo">202</span>        Property[] c = new Property[a.length + b.length];<a name="line.202"></a>
+<span class="sourceLineNo">203</span>        System.arraycopy(a, 0, c, 0, a.length);<a name="line.203"></a>
+<span class="sourceLineNo">204</span>        System.arraycopy(b, 0, c, a.length, b.length);<a name="line.204"></a>
+<span class="sourceLineNo">205</span>        return c;<a name="line.205"></a>
+<span class="sourceLineNo">206</span>    }<a name="line.206"></a>
+<span class="sourceLineNo">207</span><a name="line.207"></a>
+<span class="sourceLineNo">208</span>    public void close() {<a name="line.208"></a>
+<span class="sourceLineNo">209</span>        if (iis != null)<a name="line.209"></a>
+<span class="sourceLineNo">210</span>            try { iis.close(); } catch (IOException ignore) {}<a name="line.210"></a>
+<span class="sourceLineNo">211</span>        dispose();<a name="line.211"></a>
+<span class="sourceLineNo">212</span>    }<a name="line.212"></a>
+<span class="sourceLineNo">213</span><a name="line.213"></a>
+<span class="sourceLineNo">214</span>    @Override<a name="line.214"></a>
+<span class="sourceLineNo">215</span>    public void dispose() {<a name="line.215"></a>
+<span class="sourceLineNo">216</span>        super.dispose();<a name="line.216"></a>
+<span class="sourceLineNo">217</span><a name="line.217"></a>
+<span class="sourceLineNo">218</span>        if (compressor != null)<a name="line.218"></a>
+<span class="sourceLineNo">219</span>            compressor.dispose();<a name="line.219"></a>
+<span class="sourceLineNo">220</span><a name="line.220"></a>
+<span class="sourceLineNo">221</span>        if (verifier != null)<a name="line.221"></a>
+<span class="sourceLineNo">222</span>            verifier.dispose();<a name="line.222"></a>
+<span class="sourceLineNo">223</span><a name="line.223"></a>
+<span class="sourceLineNo">224</span>        compressor = null;<a name="line.224"></a>
+<span class="sourceLineNo">225</span>        verifier = null;<a name="line.225"></a>
+<span class="sourceLineNo">226</span>    }<a name="line.226"></a>
+<span class="sourceLineNo">227</span><a name="line.227"></a>
+<span class="sourceLineNo">228</span>    private class CompressedFrame implements Value {<a name="line.228"></a>
+<span class="sourceLineNo">229</span><a name="line.229"></a>
+<span class="sourceLineNo">230</span>        private int frameIndex;<a name="line.230"></a>
+<span class="sourceLineNo">231</span>        private int streamLength;<a name="line.231"></a>
+<span class="sourceLineNo">232</span>        private CacheOutputStream cacheout = new CacheOutputStream();<a name="line.232"></a>
+<span class="sourceLineNo">233</span>        private MemoryCacheImageOutputStream cache;<a name="line.233"></a>
+<span class="sourceLineNo">234</span><a name="line.234"></a>
+<span class="sourceLineNo">235</span>        public CompressedFrame(int frameIndex) throws IOException {<a name="line.235"></a>
+<span class="sourceLineNo">236</span>            this.frameIndex = frameIndex;<a name="line.236"></a>
+<span class="sourceLineNo">237</span>        }<a name="line.237"></a>
+<span class="sourceLineNo">238</span><a name="line.238"></a>
+<span class="sourceLineNo">239</span>        @Override<a name="line.239"></a>
+<span class="sourceLineNo">240</span>        public boolean isEmpty() {<a name="line.240"></a>
+<span class="sourceLineNo">241</span>            return false;<a name="line.241"></a>
+<span class="sourceLineNo">242</span>        }<a name="line.242"></a>
 <span class="sourceLineNo">243</span><a name="line.243"></a>
-<span class="sourceLineNo">244</span>            if (ex != null)<a name="line.244"></a>
-<span class="sourceLineNo">245</span>                throw ex;<a name="line.245"></a>
-<span class="sourceLineNo">246</span><a name="line.246"></a>
-<span class="sourceLineNo">247</span>            try {<a name="line.247"></a>
-<span class="sourceLineNo">248</span>                BufferedImage bi = Compressor.this.readFrame(frameIndex);<a name="line.248"></a>
-<span class="sourceLineNo">249</span>                Compressor.this.extractEmbeddedOverlays(frameIndex, bi);<a name="line.249"></a>
-<span class="sourceLineNo">250</span>                if (bitsStored &lt; bitsAllocated)<a name="line.250"></a>
-<span class="sourceLineNo">251</span>                    Compressor.this.nullifyUnusedBits(bitsStored, bi);<a name="line.251"></a>
-<span class="sourceLineNo">252</span>                cache = new MemoryCacheImageOutputStream(cacheout);<a name="line.252"></a>
-<span class="sourceLineNo">253</span>                compressor.setOutput(patchJPEGLS != null<a name="line.253"></a>
-<span class="sourceLineNo">254</span>                        ? new PatchJPEGLSImageOutputStream(cache, patchJPEGLS)<a name="line.254"></a>
-<span class="sourceLineNo">255</span>                        : cache);<a name="line.255"></a>
-<span class="sourceLineNo">256</span>                long start = System.currentTimeMillis();<a name="line.256"></a>
-<span class="sourceLineNo">257</span>                compressor.write(null, new IIOImage(bi, null, null), compressParam);<a name="line.257"></a>
-<span class="sourceLineNo">258</span>                long end = System.currentTimeMillis();<a name="line.258"></a>
-<span class="sourceLineNo">259</span>                if (LOG.isDebugEnabled())<a name="line.259"></a>
-<span class="sourceLineNo">260</span>                    LOG.debug("Compressed frame #{} {}:1 in {} ms", <a name="line.260"></a>
-<span class="sourceLineNo">261</span>                            new Object[] {frameIndex + 1,<a name="line.261"></a>
-<span class="sourceLineNo">262</span>                            (float) sizeOf(bi) / cache.length(),<a name="line.262"></a>
-<span class="sourceLineNo">263</span>                            end - start });<a name="line.263"></a>
-<span class="sourceLineNo">264</span>            } catch (IOException ex) {<a name="line.264"></a>
-<span class="sourceLineNo">265</span>                cache = null;<a name="line.265"></a>
-<span class="sourceLineNo">266</span>                Compressor.this.ex = ex;<a name="line.266"></a>
-<span class="sourceLineNo">267</span>                throw ex;<a name="line.267"></a>
-<span class="sourceLineNo">268</span>            }<a name="line.268"></a>
+<span class="sourceLineNo">244</span>        @Override<a name="line.244"></a>
+<span class="sourceLineNo">245</span>        public byte[] toBytes(VR vr, boolean bigEndian) throws IOException {<a name="line.245"></a>
+<span class="sourceLineNo">246</span>            ByteArrayOutputStream out = new ByteArrayOutputStream();<a name="line.246"></a>
+<span class="sourceLineNo">247</span>            writeTo(out);<a name="line.247"></a>
+<span class="sourceLineNo">248</span>            return out.toByteArray();<a name="line.248"></a>
+<span class="sourceLineNo">249</span>        }<a name="line.249"></a>
+<span class="sourceLineNo">250</span><a name="line.250"></a>
+<span class="sourceLineNo">251</span>        @Override<a name="line.251"></a>
+<span class="sourceLineNo">252</span>        public void writeTo(DicomOutputStream out, VR vr) throws IOException {<a name="line.252"></a>
+<span class="sourceLineNo">253</span>            writeTo(out);<a name="line.253"></a>
+<span class="sourceLineNo">254</span>        }<a name="line.254"></a>
+<span class="sourceLineNo">255</span><a name="line.255"></a>
+<span class="sourceLineNo">256</span>        @Override<a name="line.256"></a>
+<span class="sourceLineNo">257</span>        public int calcLength(DicomEncodingOptions encOpts, boolean explicitVR, VR vr) {<a name="line.257"></a>
+<span class="sourceLineNo">258</span>            return getEncodedLength(encOpts, explicitVR, vr);<a name="line.258"></a>
+<span class="sourceLineNo">259</span>        }<a name="line.259"></a>
+<span class="sourceLineNo">260</span><a name="line.260"></a>
+<span class="sourceLineNo">261</span>        @Override<a name="line.261"></a>
+<span class="sourceLineNo">262</span>        public int getEncodedLength(DicomEncodingOptions encOpts, boolean explicitVR, VR vr) {<a name="line.262"></a>
+<span class="sourceLineNo">263</span>            try {<a name="line.263"></a>
+<span class="sourceLineNo">264</span>                compress();<a name="line.264"></a>
+<span class="sourceLineNo">265</span>            } catch (IOException e) {<a name="line.265"></a>
+<span class="sourceLineNo">266</span>                return -1;<a name="line.266"></a>
+<span class="sourceLineNo">267</span>            }<a name="line.267"></a>
+<span class="sourceLineNo">268</span>            return (streamLength + 1) &amp; ~1;<a name="line.268"></a>
 <span class="sourceLineNo">269</span>        }<a name="line.269"></a>
-<span class="sourceLineNo">270</span><a name="line.270"></a>
-<span class="sourceLineNo">271</span>    }<a name="line.271"></a>
-<span class="sourceLineNo">272</span><a name="line.272"></a>
-<span class="sourceLineNo">273</span>    private static class CacheOutputStream extends FilterOutputStream {<a name="line.273"></a>
-<span class="sourceLineNo">274</span><a name="line.274"></a>
-<span class="sourceLineNo">275</span>        public CacheOutputStream() {<a name="line.275"></a>
-<span class="sourceLineNo">276</span>            super(null);<a name="line.276"></a>
-<span class="sourceLineNo">277</span>        }<a name="line.277"></a>
-<span class="sourceLineNo">278</span><a name="line.278"></a>
-<span class="sourceLineNo">279</span>        public void set(OutputStream out) {<a name="line.279"></a>
-<span class="sourceLineNo">280</span>            this.out = out;<a name="line.280"></a>
-<span class="sourceLineNo">281</span>        }<a name="line.281"></a>
-<span class="sourceLineNo">282</span>    }<a name="line.282"></a>
-<span class="sourceLineNo">283</span><a name="line.283"></a>
-<span class="sourceLineNo">284</span>    public BufferedImage readFrame(int frameIndex) throws IOException {<a name="line.284"></a>
-<span class="sourceLineNo">285</span>        if (iis == null)<a name="line.285"></a>
-<span class="sourceLineNo">286</span>            iis = new FileImageInputStream(file);<a name="line.286"></a>
-<span class="sourceLineNo">287</span><a name="line.287"></a>
-<span class="sourceLineNo">288</span>        if (decompressor != null)<a name="line.288"></a>
-<span class="sourceLineNo">289</span>            return decompressFrame(iis, frameIndex);<a name="line.289"></a>
-<span class="sourceLineNo">290</span><a name="line.290"></a>
-<span class="sourceLineNo">291</span>        iis.setByteOrder(UID.ExplicitVRBigEndian.equals(pixeldata.transferSyntax) <a name="line.291"></a>
-<span class="sourceLineNo">292</span>                ? ByteOrder.BIG_ENDIAN<a name="line.292"></a>
-<span class="sourceLineNo">293</span>                : ByteOrder.LITTLE_ENDIAN);<a name="line.293"></a>
-<span class="sourceLineNo">294</span>        iis.seek(pixeldata.offset + frameLength * frameIndex);<a name="line.294"></a>
-<span class="sourceLineNo">295</span>        DataBuffer db = destination.getRaster().getDataBuffer();<a name="line.295"></a>
-<span class="sourceLineNo">296</span>        switch (db.getDataType()) {<a name="line.296"></a>
-<span class="sourceLineNo">297</span>        case DataBuffer.TYPE_BYTE:<a name="line.297"></a>
-<span class="sourceLineNo">298</span>            for (byte[] bs : ((DataBufferByte) db).getBankData())<a name="line.298"></a>
-<span class="sourceLineNo">299</span>                iis.readFully(bs);<a name="line.299"></a>
-<span class="sourceLineNo">300</span>            break;<a name="line.300"></a>
-<span class="sourceLineNo">301</span>        case DataBuffer.TYPE_USHORT:<a name="line.301"></a>
-<span class="sourceLineNo">302</span>            readFully(((DataBufferUShort) db).getData());<a name="line.302"></a>
-<span class="sourceLineNo">303</span>            break;<a name="line.303"></a>
-<span class="sourceLineNo">304</span>        case DataBuffer.TYPE_SHORT:<a name="line.304"></a>
-<span class="sourceLineNo">305</span>            readFully(((DataBufferShort) db).getData());<a name="line.305"></a>
-<span class="sourceLineNo">306</span>            break;<a name="line.306"></a>
-<span class="sourceLineNo">307</span>        default:<a name="line.307"></a>
-<span class="sourceLineNo">308</span>            throw new UnsupportedOperationException(<a name="line.308"></a>
-<span class="sourceLineNo">309</span>                    "Unsupported Datatype: " + db.getDataType());<a name="line.309"></a>
-<span class="sourceLineNo">310</span>        }<a name="line.310"></a>
-<span class="sourceLineNo">311</span>        return destination;<a name="line.311"></a>
-<span class="sourceLineNo">312</span>    }<a name="line.312"></a>
-<span class="sourceLineNo">313</span><a name="line.313"></a>
-<span class="sourceLineNo">314</span>    private void nullifyUnusedBits(int bitsStored, BufferedImage bi) {<a name="line.314"></a>
-<span class="sourceLineNo">315</span>        DataBuffer db = bi.getRaster().getDataBuffer();<a name="line.315"></a>
-<span class="sourceLineNo">316</span>        switch (db.getDataType()) {<a name="line.316"></a>
-<span class="sourceLineNo">317</span>        case DataBuffer.TYPE_USHORT:<a name="line.317"></a>
-<span class="sourceLineNo">318</span>            nullifyUnusedBits(bitsStored, ((DataBufferUShort) db).getData());<a name="line.318"></a>
-<span class="sourceLineNo">319</span>            break;<a name="line.319"></a>
-<span class="sourceLineNo">320</span>        case DataBuffer.TYPE_SHORT:<a name="line.320"></a>
-<span class="sourceLineNo">321</span>            nullifyUnusedBits(bitsStored, ((DataBufferShort) db).getData());<a name="line.321"></a>
-<span class="sourceLineNo">322</span>            break;<a name="line.322"></a>
-<span class="sourceLineNo">323</span>        }<a name="line.323"></a>
-<span class="sourceLineNo">324</span>    }<a name="line.324"></a>
-<span class="sourceLineNo">325</span><a name="line.325"></a>
-<span class="sourceLineNo">326</span>    private void nullifyUnusedBits(int bitsStored, short[] data) {<a name="line.326"></a>
-<span class="sourceLineNo">327</span>        int mask = (1&lt;&lt;bitsStored)-1;<a name="line.327"></a>
-<span class="sourceLineNo">328</span>        for (int i = 0; i &lt; data.length; i++)<a name="line.328"></a>
-<span class="sourceLineNo">329</span>            data[i] &amp;= mask;<a name="line.329"></a>
-<span class="sourceLineNo">330</span>    }<a name="line.330"></a>
-<span class="sourceLineNo">331</span><a name="line.331"></a>
-<span class="sourceLineNo">332</span>    private void extractEmbeddedOverlays(int frameIndex, BufferedImage bi) {<a name="line.332"></a>
-<span class="sourceLineNo">333</span>        for (int gg0000 : embeddedOverlays) {<a name="line.333"></a>
-<span class="sourceLineNo">334</span>            int ovlyRow = dataset.getInt(Tag.OverlayRows | gg0000, 0);<a name="line.334"></a>
-<span class="sourceLineNo">335</span>            int ovlyColumns = dataset.getInt(Tag.OverlayColumns | gg0000, 0);<a name="line.335"></a>
-<span class="sourceLineNo">336</span>            int ovlyBitPosition = dataset.getInt(Tag.OverlayBitPosition | gg0000, 0);<a name="line.336"></a>
-<span class="sourceLineNo">337</span>            int mask = 1 &lt;&lt; ovlyBitPosition;<a name="line.337"></a>
-<span class="sourceLineNo">338</span>            int ovlyLength = ovlyRow * ovlyColumns;<a name="line.338"></a>
-<span class="sourceLineNo">339</span>            byte[] ovlyData = dataset.getSafeBytes(Tag.OverlayData | gg0000);<a name="line.339"></a>
-<span class="sourceLineNo">340</span>            if (ovlyData == null) {<a name="line.340"></a>
-<span class="sourceLineNo">341</span>                ovlyData = new byte[(((ovlyLength*frames+7)&gt;&gt;&gt;3)+1)&amp;(~1)];<a name="line.341"></a>
-<span class="sourceLineNo">342</span>                dataset.setBytes(Tag.OverlayData | gg0000, VR.OB, ovlyData);<a name="line.342"></a>
-<span class="sourceLineNo">343</span>            }<a name="line.343"></a>
-<span class="sourceLineNo">344</span>            Overlays.extractFromPixeldata(bi.getRaster(), mask, ovlyData,<a name="line.344"></a>
-<span class="sourceLineNo">345</span>                    ovlyLength * frameIndex, ovlyLength);<a name="line.345"></a>
-<span class="sourceLineNo">346</span>            LOG.debug("Extracted embedded overlay #{} from bit #{} of frame #{}",<a name="line.346"></a>
-<span class="sourceLineNo">347</span>                    new Object[]{(gg0000 &gt;&gt;&gt; 17) + 1, ovlyBitPosition, frameIndex + 1});<a name="line.347"></a>
-<span class="sourceLineNo">348</span>        }<a name="line.348"></a>
-<span class="sourceLineNo">349</span>    }<a name="line.349"></a>
-<span class="sourceLineNo">350</span><a name="line.350"></a>
-<span class="sourceLineNo">351</span>    private void readFully(short[] data) throws IOException {<a name="line.351"></a>
-<span class="sourceLineNo">352</span>        iis.readFully(data, 0, data.length);<a name="line.352"></a>
-<span class="sourceLineNo">353</span>    }<a name="line.353"></a>
-<span class="sourceLineNo">354</span><a name="line.354"></a>
-<span class="sourceLineNo">355</span>}<a name="line.355"></a>
+<span class="sourceLineNo">270</span>        <a name="line.270"></a>
+<span class="sourceLineNo">271</span>        private void writeTo(OutputStream out) throws IOException {<a name="line.271"></a>
+<span class="sourceLineNo">272</span>            compress();<a name="line.272"></a>
+<span class="sourceLineNo">273</span>            try {<a name="line.273"></a>
+<span class="sourceLineNo">274</span>                cacheout.set(out);<a name="line.274"></a>
+<span class="sourceLineNo">275</span>                long start = System.currentTimeMillis();<a name="line.275"></a>
+<span class="sourceLineNo">276</span>                cache.seek(streamLength);<a name="line.276"></a>
+<span class="sourceLineNo">277</span>                cache.flushBefore(streamLength);<a name="line.277"></a>
+<span class="sourceLineNo">278</span>                if ((streamLength &amp; 1) != 0)<a name="line.278"></a>
+<span class="sourceLineNo">279</span>                    out.write(0);<a name="line.279"></a>
+<span class="sourceLineNo">280</span>                long end = System.currentTimeMillis();<a name="line.280"></a>
+<span class="sourceLineNo">281</span>                LOG.debug("Flushed frame #{} from memory in {} ms",<a name="line.281"></a>
+<span class="sourceLineNo">282</span>                        frameIndex + 1, end - start);<a name="line.282"></a>
+<span class="sourceLineNo">283</span>            } finally {<a name="line.283"></a>
+<span class="sourceLineNo">284</span>                try { cache.close(); } catch (IOException ignore) {}<a name="line.284"></a>
+<span class="sourceLineNo">285</span>                cache = null;<a name="line.285"></a>
+<span class="sourceLineNo">286</span>            }<a name="line.286"></a>
+<span class="sourceLineNo">287</span>        }<a name="line.287"></a>
+<span class="sourceLineNo">288</span><a name="line.288"></a>
+<span class="sourceLineNo">289</span>        private void compress() throws IOException {<a name="line.289"></a>
+<span class="sourceLineNo">290</span>            if (cache != null)<a name="line.290"></a>
+<span class="sourceLineNo">291</span>                return;<a name="line.291"></a>
+<span class="sourceLineNo">292</span><a name="line.292"></a>
+<span class="sourceLineNo">293</span>            if (ex != null)<a name="line.293"></a>
+<span class="sourceLineNo">294</span>                throw ex;<a name="line.294"></a>
+<span class="sourceLineNo">295</span><a name="line.295"></a>
+<span class="sourceLineNo">296</span>            try {<a name="line.296"></a>
+<span class="sourceLineNo">297</span>                BufferedImage bi = Compressor.this.readFrame(frameIndex);<a name="line.297"></a>
+<span class="sourceLineNo">298</span>                Compressor.this.extractEmbeddedOverlays(frameIndex, bi);<a name="line.298"></a>
+<span class="sourceLineNo">299</span>                if (bitsStored &lt; bitsAllocated)<a name="line.299"></a>
+<span class="sourceLineNo">300</span>                    Compressor.this.nullifyUnusedBits(bitsStored, bi);<a name="line.300"></a>
+<span class="sourceLineNo">301</span>                cache = new MemoryCacheImageOutputStream(cacheout) {<a name="line.301"></a>
+<span class="sourceLineNo">302</span><a name="line.302"></a>
+<span class="sourceLineNo">303</span>                    @Override<a name="line.303"></a>
+<span class="sourceLineNo">304</span>                    public void flush() throws IOException {<a name="line.304"></a>
+<span class="sourceLineNo">305</span>                        // defer flush to writeTo()<a name="line.305"></a>
+<span class="sourceLineNo">306</span>                        LOG.debug("Ignore invoke of MemoryCacheImageOutputStream.flush()");<a name="line.306"></a>
+<span class="sourceLineNo">307</span>                    }<a name="line.307"></a>
+<span class="sourceLineNo">308</span>                };<a name="line.308"></a>
+<span class="sourceLineNo">309</span>                compressor.setOutput(patchJPEGLS != null<a name="line.309"></a>
+<span class="sourceLineNo">310</span>                        ? new PatchJPEGLSImageOutputStream(cache, patchJPEGLS)<a name="line.310"></a>
+<span class="sourceLineNo">311</span>                        : cache);<a name="line.311"></a>
+<span class="sourceLineNo">312</span>                long start = System.currentTimeMillis();<a name="line.312"></a>
+<span class="sourceLineNo">313</span>                compressor.write(null, new IIOImage(bi, null, null), compressParam);<a name="line.313"></a>
+<span class="sourceLineNo">314</span>                long end = System.currentTimeMillis();<a name="line.314"></a>
+<span class="sourceLineNo">315</span>                streamLength = (int) cache.getStreamPosition();<a name="line.315"></a>
+<span class="sourceLineNo">316</span>                if (LOG.isDebugEnabled())<a name="line.316"></a>
+<span class="sourceLineNo">317</span>                    LOG.debug("Compressed frame #{} {}:1 in {} ms", <a name="line.317"></a>
+<span class="sourceLineNo">318</span>                            new Object[] {frameIndex + 1,<a name="line.318"></a>
+<span class="sourceLineNo">319</span>                            (float) sizeOf(bi) / streamLength,<a name="line.319"></a>
+<span class="sourceLineNo">320</span>                            end - start });<a name="line.320"></a>
+<span class="sourceLineNo">321</span>                Compressor.this.verify(cache, frameIndex);<a name="line.321"></a>
+<span class="sourceLineNo">322</span>            } catch (IOException ex) {<a name="line.322"></a>
+<span class="sourceLineNo">323</span>                cache = null;<a name="line.323"></a>
+<span class="sourceLineNo">324</span>                Compressor.this.ex = ex;<a name="line.324"></a>
+<span class="sourceLineNo">325</span>                throw ex;<a name="line.325"></a>
+<span class="sourceLineNo">326</span>            }<a name="line.326"></a>
+<span class="sourceLineNo">327</span>        }<a name="line.327"></a>
+<span class="sourceLineNo">328</span><a name="line.328"></a>
+<span class="sourceLineNo">329</span>    }<a name="line.329"></a>
+<span class="sourceLineNo">330</span><a name="line.330"></a>
+<span class="sourceLineNo">331</span>    private static class CacheOutputStream extends FilterOutputStream {<a name="line.331"></a>
+<span class="sourceLineNo">332</span><a name="line.332"></a>
+<span class="sourceLineNo">333</span>        public CacheOutputStream() {<a name="line.333"></a>
+<span class="sourceLineNo">334</span>            super(null);<a name="line.334"></a>
+<span class="sourceLineNo">335</span>        }<a name="line.335"></a>
+<span class="sourceLineNo">336</span><a name="line.336"></a>
+<span class="sourceLineNo">337</span>        public void set(OutputStream out) {<a name="line.337"></a>
+<span class="sourceLineNo">338</span>            this.out = out;<a name="line.338"></a>
+<span class="sourceLineNo">339</span>        }<a name="line.339"></a>
+<span class="sourceLineNo">340</span>    }<a name="line.340"></a>
+<span class="sourceLineNo">341</span><a name="line.341"></a>
+<span class="sourceLineNo">342</span>    public BufferedImage readFrame(int frameIndex) throws IOException {<a name="line.342"></a>
+<span class="sourceLineNo">343</span>        if (iis == null)<a name="line.343"></a>
+<span class="sourceLineNo">344</span>            iis = new FileImageInputStream(file);<a name="line.344"></a>
+<span class="sourceLineNo">345</span><a name="line.345"></a>
+<span class="sourceLineNo">346</span>        if (decompressor != null)<a name="line.346"></a>
+<span class="sourceLineNo">347</span>            return decompressFrame(iis, frameIndex);<a name="line.347"></a>
+<span class="sourceLineNo">348</span><a name="line.348"></a>
+<span class="sourceLineNo">349</span>        iis.setByteOrder(UID.ExplicitVRBigEndian.equals(pixeldata.transferSyntax) <a name="line.349"></a>
+<span class="sourceLineNo">350</span>                ? ByteOrder.BIG_ENDIAN<a name="line.350"></a>
+<span class="sourceLineNo">351</span>                : ByteOrder.LITTLE_ENDIAN);<a name="line.351"></a>
+<span class="sourceLineNo">352</span>        iis.seek(pixeldata.offset + frameLength * frameIndex);<a name="line.352"></a>
+<span class="sourceLineNo">353</span>        DataBuffer db = bi.getRaster().getDataBuffer();<a name="line.353"></a>
+<span class="sourceLineNo">354</span>        switch (db.getDataType()) {<a name="line.354"></a>
+<span class="sourceLineNo">355</span>        case DataBuffer.TYPE_BYTE:<a name="line.355"></a>
+<span class="sourceLineNo">356</span>            for (byte[] bs : ((DataBufferByte) db).getBankData())<a name="line.356"></a>
+<span class="sourceLineNo">357</span>                iis.readFully(bs);<a name="line.357"></a>
+<span class="sourceLineNo">358</span>            break;<a name="line.358"></a>
+<span class="sourceLineNo">359</span>        case DataBuffer.TYPE_USHORT:<a name="line.359"></a>
+<span class="sourceLineNo">360</span>            readFully(((DataBufferUShort) db).getData());<a name="line.360"></a>
+<span class="sourceLineNo">361</span>            break;<a name="line.361"></a>
+<span class="sourceLineNo">362</span>        case DataBuffer.TYPE_SHORT:<a name="line.362"></a>
+<span class="sourceLineNo">363</span>            readFully(((DataBufferShort) db).getData());<a name="line.363"></a>
+<span class="sourceLineNo">364</span>            break;<a name="line.364"></a>
+<span class="sourceLineNo">365</span>        default:<a name="line.365"></a>
+<span class="sourceLineNo">366</span>            throw new UnsupportedOperationException(<a name="line.366"></a>
+<span class="sourceLineNo">367</span>                    "Unsupported Datatype: " + db.getDataType());<a name="line.367"></a>
+<span class="sourceLineNo">368</span>        }<a name="line.368"></a>
+<span class="sourceLineNo">369</span>        return bi;<a name="line.369"></a>
+<span class="sourceLineNo">370</span>    }<a name="line.370"></a>
+<span class="sourceLineNo">371</span><a name="line.371"></a>
+<span class="sourceLineNo">372</span>    private void verify(MemoryCacheImageOutputStream cache, int index)<a name="line.372"></a>
+<span class="sourceLineNo">373</span>            throws IOException {<a name="line.373"></a>
+<span class="sourceLineNo">374</span>        if (verifier == null)<a name="line.374"></a>
+<span class="sourceLineNo">375</span>            return;<a name="line.375"></a>
+<span class="sourceLineNo">376</span><a name="line.376"></a>
+<span class="sourceLineNo">377</span>        cache.seek(0);<a name="line.377"></a>
+<span class="sourceLineNo">378</span>        verifier.setInput(cache);<a name="line.378"></a>
+<span class="sourceLineNo">379</span>        verifyParam.setDestination(bi2);<a name="line.379"></a>
+<span class="sourceLineNo">380</span>        long start = System.currentTimeMillis();<a name="line.380"></a>
+<span class="sourceLineNo">381</span>        bi2 = verifier.read(0, verifyParam);<a name="line.381"></a>
+<span class="sourceLineNo">382</span>        int maxDiff = maxDiff(bi.getRaster(), bi2.getRaster());<a name="line.382"></a>
+<span class="sourceLineNo">383</span>        long end = System.currentTimeMillis();<a name="line.383"></a>
+<span class="sourceLineNo">384</span>        if (LOG.isDebugEnabled())<a name="line.384"></a>
+<span class="sourceLineNo">385</span>            LOG.debug("Verified compressed frame #{} in {} ms - max pixel value error: {}",<a name="line.385"></a>
+<span class="sourceLineNo">386</span>                    new Object[] { index + 1, end - start, maxDiff });<a name="line.386"></a>
+<span class="sourceLineNo">387</span>        if (maxDiff &gt; maxPixelValueError)<a name="line.387"></a>
+<span class="sourceLineNo">388</span>            throw new CompressionVerificationException(maxDiff);<a name="line.388"></a>
+<span class="sourceLineNo">389</span><a name="line.389"></a>
+<span class="sourceLineNo">390</span>    }<a name="line.390"></a>
+<span class="sourceLineNo">391</span><a name="line.391"></a>
+<span class="sourceLineNo">392</span>    private int maxDiff(WritableRaster raster, WritableRaster raster2) {<a name="line.392"></a>
+<span class="sourceLineNo">393</span>        ComponentSampleModel csm = <a name="line.393"></a>
+<span class="sourceLineNo">394</span>                (ComponentSampleModel) raster.getSampleModel();<a name="line.394"></a>
+<span class="sourceLineNo">395</span>        ComponentSampleModel csm2 = <a name="line.395"></a>
+<span class="sourceLineNo">396</span>                (ComponentSampleModel) raster2.getSampleModel();<a name="line.396"></a>
+<span class="sourceLineNo">397</span>        DataBuffer db = raster.getDataBuffer();<a name="line.397"></a>
+<span class="sourceLineNo">398</span>        DataBuffer db2 = raster2.getDataBuffer();<a name="line.398"></a>
+<span class="sourceLineNo">399</span>        int blockSize = avgPixelValueBlockSize;<a name="line.399"></a>
+<span class="sourceLineNo">400</span>        if (blockSize &gt; 1) {<a name="line.400"></a>
+<span class="sourceLineNo">401</span>            int w = csm.getWidth();<a name="line.401"></a>
+<span class="sourceLineNo">402</span>            int h = csm.getHeight();<a name="line.402"></a>
+<span class="sourceLineNo">403</span>            int maxY = (h / blockSize - 1) * blockSize;<a name="line.403"></a>
+<span class="sourceLineNo">404</span>            int maxX = (w / blockSize - 1) * blockSize;<a name="line.404"></a>
+<span class="sourceLineNo">405</span>            int[] samples = new int[blockSize * blockSize];<a name="line.405"></a>
+<span class="sourceLineNo">406</span>            int diff, maxDiff = 0;<a name="line.406"></a>
+<span class="sourceLineNo">407</span>            for (int b = 0; b &lt; csm.getNumBands(); b++)<a name="line.407"></a>
+<span class="sourceLineNo">408</span>                for (int y = 0; y &lt; maxY; y += blockSize) {<a name="line.408"></a>
+<span class="sourceLineNo">409</span>                    for (int x = 0; x &lt; maxX; x += blockSize) {<a name="line.409"></a>
+<span class="sourceLineNo">410</span>                        if (maxDiff &lt; (diff = Math.abs(<a name="line.410"></a>
+<span class="sourceLineNo">411</span>                                sum(csm.getSamples(<a name="line.411"></a>
+<span class="sourceLineNo">412</span>                                    x, y, blockSize, blockSize, b, samples, db))<a name="line.412"></a>
+<span class="sourceLineNo">413</span>                              - sum(csm2.getSamples(<a name="line.413"></a>
+<span class="sourceLineNo">414</span>                                    x, y, blockSize, blockSize, b, samples, db2)))))<a name="line.414"></a>
+<span class="sourceLineNo">415</span>                            maxDiff = diff;<a name="line.415"></a>
+<span class="sourceLineNo">416</span>                    }<a name="line.416"></a>
+<span class="sourceLineNo">417</span>                }<a name="line.417"></a>
+<span class="sourceLineNo">418</span>            return maxDiff / samples.length;<a name="line.418"></a>
+<span class="sourceLineNo">419</span>        }<a name="line.419"></a>
+<span class="sourceLineNo">420</span>        switch (db.getDataType()) {<a name="line.420"></a>
+<span class="sourceLineNo">421</span>        case DataBuffer.TYPE_BYTE:<a name="line.421"></a>
+<span class="sourceLineNo">422</span>            return maxDiff(csm, ((DataBufferByte) db).getBankData(),<a name="line.422"></a>
+<span class="sourceLineNo">423</span>                  csm2, ((DataBufferByte) db2).getBankData());<a name="line.423"></a>
+<span class="sourceLineNo">424</span>        case DataBuffer.TYPE_USHORT:<a name="line.424"></a>
+<span class="sourceLineNo">425</span>            return maxDiff(csm, ((DataBufferUShort) db).getData(),<a name="line.425"></a>
+<span class="sourceLineNo">426</span>                  csm2, ((DataBufferUShort) db2).getData());<a name="line.426"></a>
+<span class="sourceLineNo">427</span>        case DataBuffer.TYPE_SHORT:<a name="line.427"></a>
+<span class="sourceLineNo">428</span>            return maxDiff(csm, ((DataBufferShort) db).getData(),<a name="line.428"></a>
+<span class="sourceLineNo">429</span>                  csm2, ((DataBufferShort) db2).getData());<a name="line.429"></a>
+<span class="sourceLineNo">430</span>        default:<a name="line.430"></a>
+<span class="sourceLineNo">431</span>            throw new UnsupportedOperationException(<a name="line.431"></a>
+<span class="sourceLineNo">432</span>                    "Unsupported Datatype: " + db.getDataType());<a name="line.432"></a>
+<span class="sourceLineNo">433</span>        }<a name="line.433"></a>
+<span class="sourceLineNo">434</span>    }<a name="line.434"></a>
+<span class="sourceLineNo">435</span><a name="line.435"></a>
+<span class="sourceLineNo">436</span>    private int sum(int[] samples) {<a name="line.436"></a>
+<span class="sourceLineNo">437</span>        int sum = 0;<a name="line.437"></a>
+<span class="sourceLineNo">438</span>        for (int sample : samples)<a name="line.438"></a>
+<span class="sourceLineNo">439</span>            sum += sample;<a name="line.439"></a>
+<span class="sourceLineNo">440</span>        return sum;<a name="line.440"></a>
+<span class="sourceLineNo">441</span>    }<a name="line.441"></a>
+<span class="sourceLineNo">442</span><a name="line.442"></a>
+<span class="sourceLineNo">443</span>    private int maxDiff(ComponentSampleModel csm, short[] data,<a name="line.443"></a>
+<span class="sourceLineNo">444</span>                        ComponentSampleModel csm2, short[] data2) {<a name="line.444"></a>
+<span class="sourceLineNo">445</span>        int w = csm.getWidth() * csm.getPixelStride();<a name="line.445"></a>
+<span class="sourceLineNo">446</span>        int h = csm.getHeight();<a name="line.446"></a>
+<span class="sourceLineNo">447</span>        int stride = csm.getScanlineStride();<a name="line.447"></a>
+<span class="sourceLineNo">448</span>        int stride2 = csm2.getScanlineStride();<a name="line.448"></a>
+<span class="sourceLineNo">449</span>        int diff, maxDiff = 0;<a name="line.449"></a>
+<span class="sourceLineNo">450</span>        for (int y = 0; y &lt; h; y++) {<a name="line.450"></a>
+<span class="sourceLineNo">451</span>            for (int j = w, i = y * stride, i2 = y * stride2; j-- &gt; 0; i++, i2++) {<a name="line.451"></a>
+<span class="sourceLineNo">452</span>                if (maxDiff &lt; (diff = Math.abs(data[i] - data2[i2])))<a name="line.452"></a>
+<span class="sourceLineNo">453</span>                    maxDiff = diff;<a name="line.453"></a>
+<span class="sourceLineNo">454</span>            }<a name="line.454"></a>
+<span class="sourceLineNo">455</span>        }<a name="line.455"></a>
+<span class="sourceLineNo">456</span>        return maxDiff;<a name="line.456"></a>
+<span class="sourceLineNo">457</span>    }<a name="line.457"></a>
+<span class="sourceLineNo">458</span><a name="line.458"></a>
+<span class="sourceLineNo">459</span>    private int maxDiff(ComponentSampleModel csm, byte[][] banks,<a name="line.459"></a>
+<span class="sourceLineNo">460</span>                        ComponentSampleModel csm2, byte[][] banks2) {<a name="line.460"></a>
+<span class="sourceLineNo">461</span>        int w = csm.getWidth();<a name="line.461"></a>
+<span class="sourceLineNo">462</span>        int h = csm.getHeight();<a name="line.462"></a>
+<span class="sourceLineNo">463</span>        int bands = csm.getNumBands();<a name="line.463"></a>
+<span class="sourceLineNo">464</span>        int stride = csm.getScanlineStride();<a name="line.464"></a>
+<span class="sourceLineNo">465</span>        int pixelStride = csm.getPixelStride();<a name="line.465"></a>
+<span class="sourceLineNo">466</span>        int[] bankIndices = csm.getBankIndices();<a name="line.466"></a>
+<span class="sourceLineNo">467</span>        int[] bandOffsets = csm.getBandOffsets();<a name="line.467"></a>
+<span class="sourceLineNo">468</span>        int stride2 = csm2.getScanlineStride();<a name="line.468"></a>
+<span class="sourceLineNo">469</span>        int pixelStride2 = csm2.getPixelStride();<a name="line.469"></a>
+<span class="sourceLineNo">470</span>        int[] bankIndices2 = csm2.getBankIndices();<a name="line.470"></a>
+<span class="sourceLineNo">471</span>        int[] bandOffsets2 = csm2.getBandOffsets();<a name="line.471"></a>
+<span class="sourceLineNo">472</span>        int diff, maxDiff = 0;<a name="line.472"></a>
+<span class="sourceLineNo">473</span>        for (int b = 0; b &lt; bands; b++) {<a name="line.473"></a>
+<span class="sourceLineNo">474</span>            byte[] bank = banks[bankIndices[b]];<a name="line.474"></a>
+<span class="sourceLineNo">475</span>            byte[] bank2 = banks2[bankIndices2[b]];<a name="line.475"></a>
+<span class="sourceLineNo">476</span>            int off = bandOffsets[b];<a name="line.476"></a>
+<span class="sourceLineNo">477</span>            int off2 = bandOffsets2[b];<a name="line.477"></a>
+<span class="sourceLineNo">478</span>            for (int y = 0; y &lt; h; y++) {<a name="line.478"></a>
+<span class="sourceLineNo">479</span>                for (int x = w, i = y * stride + off, i2 = y * stride2 + off2;<a name="line.479"></a>
+<span class="sourceLineNo">480</span>                        x-- &gt; 0; i += pixelStride, i2 += pixelStride2) {<a name="line.480"></a>
+<span class="sourceLineNo">481</span>                    if (maxDiff &lt; (diff = Math.abs(bank[i] - bank2[i2])))<a name="line.481"></a>
+<span class="sourceLineNo">482</span>                        maxDiff = diff;<a name="line.482"></a>
+<span class="sourceLineNo">483</span>                }<a name="line.483"></a>
+<span class="sourceLineNo">484</span>            }<a name="line.484"></a>
+<span class="sourceLineNo">485</span>        }<a name="line.485"></a>
+<span class="sourceLineNo">486</span>        return maxDiff;<a name="line.486"></a>
+<span class="sourceLineNo">487</span>    }<a name="line.487"></a>
+<span class="sourceLineNo">488</span><a name="line.488"></a>
+<span class="sourceLineNo">489</span>    private void nullifyUnusedBits(int bitsStored, BufferedImage bi) {<a name="line.489"></a>
+<span class="sourceLineNo">490</span>        DataBuffer db = bi.getRaster().getDataBuffer();<a name="line.490"></a>
+<span class="sourceLineNo">491</span>        switch (db.getDataType()) {<a name="line.491"></a>
+<span class="sourceLineNo">492</span>        case DataBuffer.TYPE_USHORT:<a name="line.492"></a>
+<span class="sourceLineNo">493</span>            nullifyUnusedBits(bitsStored, ((DataBufferUShort) db).getData());<a name="line.493"></a>
+<span class="sourceLineNo">494</span>            break;<a name="line.494"></a>
+<span class="sourceLineNo">495</span>        case DataBuffer.TYPE_SHORT:<a name="line.495"></a>
+<span class="sourceLineNo">496</span>            nullifyUnusedBits(bitsStored, ((DataBufferShort) db).getData());<a name="line.496"></a>
+<span class="sourceLineNo">497</span>            break;<a name="line.497"></a>
+<span class="sourceLineNo">498</span>        }<a name="line.498"></a>
+<span class="sourceLineNo">499</span>    }<a name="line.499"></a>
+<span class="sourceLineNo">500</span><a name="line.500"></a>
+<span class="sourceLineNo">501</span>    private void nullifyUnusedBits(int bitsStored, short[] data) {<a name="line.501"></a>
+<span class="sourceLineNo">502</span>        int mask = (1&lt;&lt;bitsStored)-1;<a name="line.502"></a>
+<span class="sourceLineNo">503</span>        for (int i = 0; i &lt; data.length; i++)<a name="line.503"></a>
+<span class="sourceLineNo">504</span>            data[i] &amp;= mask;<a name="line.504"></a>
+<span class="sourceLineNo">505</span>    }<a name="line.505"></a>
+<span class="sourceLineNo">506</span><a name="line.506"></a>
+<span class="sourceLineNo">507</span>    private void extractEmbeddedOverlays(int frameIndex, BufferedImage bi) {<a name="line.507"></a>
+<span class="sourceLineNo">508</span>        for (int gg0000 : embeddedOverlays) {<a name="line.508"></a>
+<span class="sourceLineNo">509</span>            int ovlyRow = dataset.getInt(Tag.OverlayRows | gg0000, 0);<a name="line.509"></a>
+<span class="sourceLineNo">510</span>            int ovlyColumns = dataset.getInt(Tag.OverlayColumns | gg0000, 0);<a name="line.510"></a>
+<span class="sourceLineNo">511</span>            int ovlyBitPosition = dataset.getInt(Tag.OverlayBitPosition | gg0000, 0);<a name="line.511"></a>
+<span class="sourceLineNo">512</span>            int mask = 1 &lt;&lt; ovlyBitPosition;<a name="line.512"></a>
+<span class="sourceLineNo">513</span>            int ovlyLength = ovlyRow * ovlyColumns;<a name="line.513"></a>
+<span class="sourceLineNo">514</span>            byte[] ovlyData = dataset.getSafeBytes(Tag.OverlayData | gg0000);<a name="line.514"></a>
+<span class="sourceLineNo">515</span>            if (ovlyData == null) {<a name="line.515"></a>
+<span class="sourceLineNo">516</span>                ovlyData = new byte[(((ovlyLength*frames+7)&gt;&gt;&gt;3)+1)&amp;(~1)];<a name="line.516"></a>
+<span class="sourceLineNo">517</span>                dataset.setBytes(Tag.OverlayData | gg0000, VR.OB, ovlyData);<a name="line.517"></a>
+<span class="sourceLineNo">518</span>            }<a name="line.518"></a>
+<span class="sourceLineNo">519</span>            Overlays.extractFromPixeldata(bi.getRaster(), mask, ovlyData,<a name="line.519"></a>
+<span class="sourceLineNo">520</span>                    ovlyLength * frameIndex, ovlyLength);<a name="line.520"></a>
+<span class="sourceLineNo">521</span>            LOG.debug("Extracted embedded overlay #{} from bit #{} of frame #{}",<a name="line.521"></a>
+<span class="sourceLineNo">522</span>                    new Object[]{(gg0000 &gt;&gt;&gt; 17) + 1, ovlyBitPosition, frameIndex + 1});<a name="line.522"></a>
+<span class="sourceLineNo">523</span>        }<a name="line.523"></a>
+<span class="sourceLineNo">524</span>    }<a name="line.524"></a>
+<span class="sourceLineNo">525</span><a name="line.525"></a>
+<span class="sourceLineNo">526</span>    private void readFully(short[] data) throws IOException {<a name="line.526"></a>
+<span class="sourceLineNo">527</span>        iis.readFully(data, 0, data.length);<a name="line.527"></a>
+<span class="sourceLineNo">528</span>    }<a name="line.528"></a>
+<span class="sourceLineNo">529</span><a name="line.529"></a>
+<span class="sourceLineNo">530</span>}<a name="line.530"></a>
 
 
 
