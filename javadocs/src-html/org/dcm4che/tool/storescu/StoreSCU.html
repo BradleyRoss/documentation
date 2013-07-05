@@ -449,7 +449,7 @@
 <span class="sourceLineNo">441</span>        } else {<a name="line.441"></a>
 <span class="sourceLineNo">442</span>            DicomInputStream in = new DicomInputStream(f);<a name="line.442"></a>
 <span class="sourceLineNo">443</span>            try {<a name="line.443"></a>
-<span class="sourceLineNo">444</span>                in.setIncludeBulkData(IncludeBulkData.LOCATOR);<a name="line.444"></a>
+<span class="sourceLineNo">444</span>                in.setIncludeBulkData(IncludeBulkData.URI);<a name="line.444"></a>
 <span class="sourceLineNo">445</span>                Attributes data = in.readDataset(-1, -1);<a name="line.445"></a>
 <span class="sourceLineNo">446</span>                if (CLIUtils.updateAttributes(data, attrs, uidSuffix))<a name="line.446"></a>
 <span class="sourceLineNo">447</span>                    iuid = data.getString(Tag.SOPInstanceUID);<a name="line.447"></a>

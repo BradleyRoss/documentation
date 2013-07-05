@@ -63,7 +63,7 @@
 <span class="sourceLineNo">055</span>import java.util.zip.InflaterInputStream;<a name="line.55"></a>
 <span class="sourceLineNo">056</span><a name="line.56"></a>
 <span class="sourceLineNo">057</span>import org.dcm4che.data.Attributes;<a name="line.57"></a>
-<span class="sourceLineNo">058</span>import org.dcm4che.data.BulkDataLocator;<a name="line.58"></a>
+<span class="sourceLineNo">058</span>import org.dcm4che.data.BulkData;<a name="line.58"></a>
 <span class="sourceLineNo">059</span>import org.dcm4che.data.ElementDictionary;<a name="line.59"></a>
 <span class="sourceLineNo">060</span>import org.dcm4che.data.Fragments;<a name="line.60"></a>
 <span class="sourceLineNo">061</span>import org.dcm4che.data.ItemPointer;<a name="line.61"></a>
@@ -85,7 +85,7 @@
 <span class="sourceLineNo">077</span>public class DicomInputStream extends FilterInputStream<a name="line.77"></a>
 <span class="sourceLineNo">078</span>    implements DicomInputHandler {<a name="line.78"></a>
 <span class="sourceLineNo">079</span><a name="line.79"></a>
-<span class="sourceLineNo">080</span>    public enum IncludeBulkData { NO, YES, LOCATOR }<a name="line.80"></a>
+<span class="sourceLineNo">080</span>    public enum IncludeBulkData { NO, YES, URI }<a name="line.80"></a>
 <span class="sourceLineNo">081</span><a name="line.81"></a>
 <span class="sourceLineNo">082</span>    private static final Logger LOG = <a name="line.82"></a>
 <span class="sourceLineNo">083</span>        LoggerFactory.getLogger(DicomInputStream.class);<a name="line.83"></a>
@@ -514,12 +514,12 @@
 <span class="sourceLineNo">506</span>            readSequence(length, attrs, tag);<a name="line.506"></a>
 <span class="sourceLineNo">507</span>        } else if (length == -1) {<a name="line.507"></a>
 <span class="sourceLineNo">508</span>            readFragments(attrs, tag, vr);<a name="line.508"></a>
-<span class="sourceLineNo">509</span>        } else if (length == BulkDataLocator.MAGIC_LEN<a name="line.509"></a>
+<span class="sourceLineNo">509</span>        } else if (length == BulkData.MAGIC_LEN<a name="line.509"></a>
 <span class="sourceLineNo">510</span>                &amp;&amp; super.in instanceof ObjectInputStream) {<a name="line.510"></a>
-<span class="sourceLineNo">511</span>            attrs.setValue(tag, vr, BulkDataLocator.deserializeFrom(<a name="line.511"></a>
+<span class="sourceLineNo">511</span>            attrs.setValue(tag, vr, BulkData.deserializeFrom(<a name="line.511"></a>
 <span class="sourceLineNo">512</span>                    (ObjectInputStream) super.in));<a name="line.512"></a>
-<span class="sourceLineNo">513</span>        } else if (includeBulkData == IncludeBulkData.LOCATOR &amp;&amp; isBulkData(attrs)) {<a name="line.513"></a>
-<span class="sourceLineNo">514</span>            attrs.setValue(tag, vr, createBulkDataLocator());<a name="line.514"></a>
+<span class="sourceLineNo">513</span>        } else if (includeBulkData == IncludeBulkData.URI &amp;&amp; isBulkData(attrs)) {<a name="line.513"></a>
+<span class="sourceLineNo">514</span>            attrs.setValue(tag, vr, createBulkData());<a name="line.514"></a>
 <span class="sourceLineNo">515</span>        } else {<a name="line.515"></a>
 <span class="sourceLineNo">516</span>            byte[] b = readValue();<a name="line.516"></a>
 <span class="sourceLineNo">517</span>            if (!TagUtils.isGroupLength(tag)) {<a name="line.517"></a>
@@ -531,10 +531,10 @@
 <span class="sourceLineNo">523</span>        }<a name="line.523"></a>
 <span class="sourceLineNo">524</span>    }<a name="line.524"></a>
 <span class="sourceLineNo">525</span><a name="line.525"></a>
-<span class="sourceLineNo">526</span>    public BulkDataLocator createBulkDataLocator() throws IOException {<a name="line.526"></a>
-<span class="sourceLineNo">527</span>            BulkDataLocator locator;<a name="line.527"></a>
+<span class="sourceLineNo">526</span>    public BulkData createBulkData() throws IOException {<a name="line.526"></a>
+<span class="sourceLineNo">527</span>            BulkData locator;<a name="line.527"></a>
 <span class="sourceLineNo">528</span>        if (uri != null &amp;&amp; !(super.in instanceof InflaterInputStream)) {<a name="line.528"></a>
-<span class="sourceLineNo">529</span>            locator = new BulkDataLocator(uri, tsuid, pos, length);<a name="line.529"></a>
+<span class="sourceLineNo">529</span>            locator = new BulkData(uri, tsuid, pos, length);<a name="line.529"></a>
 <span class="sourceLineNo">530</span>            skipFully(length);<a name="line.530"></a>
 <span class="sourceLineNo">531</span>        } else {<a name="line.531"></a>
 <span class="sourceLineNo">532</span>            if (blkOut == null) {<a name="line.532"></a>
@@ -555,7 +555,7 @@
 <span class="sourceLineNo">547</span>                    blkOut = null;<a name="line.547"></a>
 <span class="sourceLineNo">548</span>                }<a name="line.548"></a>
 <span class="sourceLineNo">549</span>            }<a name="line.549"></a>
-<span class="sourceLineNo">550</span>            locator = new BulkDataLocator(blkURI,<a name="line.550"></a>
+<span class="sourceLineNo">550</span>            locator = new BulkData(blkURI,<a name="line.550"></a>
 <span class="sourceLineNo">551</span>                    (super.in instanceof InflaterInputStream)<a name="line.551"></a>
 <span class="sourceLineNo">552</span>                            ? UID.ExplicitVRLittleEndian<a name="line.552"></a>
 <span class="sourceLineNo">553</span>                            : tsuid,<a name="line.553"></a>
@@ -602,11 +602,11 @@
 <span class="sourceLineNo">594</span>            skipFully(length);<a name="line.594"></a>
 <span class="sourceLineNo">595</span>        } else if (length == 0) {<a name="line.595"></a>
 <span class="sourceLineNo">596</span>            frags.add(ByteUtils.EMPTY_BYTES);<a name="line.596"></a>
-<span class="sourceLineNo">597</span>        } else if (length == BulkDataLocator.MAGIC_LEN<a name="line.597"></a>
+<span class="sourceLineNo">597</span>        } else if (length == BulkData.MAGIC_LEN<a name="line.597"></a>
 <span class="sourceLineNo">598</span>                &amp;&amp; super.in instanceof ObjectInputStream) {<a name="line.598"></a>
-<span class="sourceLineNo">599</span>            frags.add(BulkDataLocator.deserializeFrom((ObjectInputStream) super.in));<a name="line.599"></a>
-<span class="sourceLineNo">600</span>        } else if (includeBulkData == IncludeBulkData.LOCATOR &amp;&amp; isBulkDataFragment(frags)) {<a name="line.600"></a>
-<span class="sourceLineNo">601</span>            frags.add(createBulkDataLocator());<a name="line.601"></a>
+<span class="sourceLineNo">599</span>            frags.add(BulkData.deserializeFrom((ObjectInputStream) super.in));<a name="line.599"></a>
+<span class="sourceLineNo">600</span>        } else if (includeBulkData == IncludeBulkData.URI &amp;&amp; isBulkDataFragment(frags)) {<a name="line.600"></a>
+<span class="sourceLineNo">601</span>            frags.add(createBulkData());<a name="line.601"></a>
 <span class="sourceLineNo">602</span>        } else {<a name="line.602"></a>
 <span class="sourceLineNo">603</span>            byte[] b = readValue();<a name="line.603"></a>
 <span class="sourceLineNo">604</span>            if (bigEndian != frags.bigEndian())<a name="line.604"></a>

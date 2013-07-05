@@ -1,0 +1,108 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<link rel="stylesheet" type="text/css" href="../css/style.css" />
+<!-- The setting for media was taken from  http://www.mobilexweb.com/blog/iphone4-ios4-detection-safari-viewport -->
+<link rel="stylesheet" type="text/css" href="../css/handheld.css" media="only screen and (max-device-width: 480px)" />
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>DMFA Concentration</title>
+<script type="text/javascript">
+var debug = false;
+var size="medium";
+var debugLevel = "0";
+var pairs = location.search.substring(1).split('&');
+for (var argCounter = 0; argCounter < pairs.length; argCounter++)
+   {
+   var pos = pairs[argCounter].indexOf("=");
+   if (pos < 0) { continue; }
+   if (pairs[argCounter].substring(0,pos) == "size")
+      { size = pairs[argCounter].substring(pos+1); }
+   if (pairs[argCounter].substring(0,pos) == "debug")
+      { debugLevel = pairs[argCounter].substring(pos+1); }
+   }
+</script>
+<script type="text/javascript">
+var cellWidth = 0;
+var cellMargin = 0;
+var width = 0;
+var height = 0;
+if (size == "small")
+{
+cellWidth = "50";
+cellMargin = "4";
+width = "330";
+height = "330";
+}
+else if (size == "large")
+{
+cellWidth = "100";
+cellMargin = "10";
+width = "660";
+height = "660";
+}
+else 
+{
+cellWidth = "75";
+cellMargin = "6";
+width = "500";
+height = "500";
+}
+var lt;
+var gt;
+function constructApplet(mode)
+{
+if (mode == "print")
+{
+lt = "&lt;";
+gt = "&gt;";
+}
+else
+{
+lt = "<";
+gt = ">";
+}
+
+return lt + "applet code=\"local.Concentration.class\" " +
+"codebase=\".\" archive=\"combined.jar\" " +
+" width=\"" + width + "\" height=\"" + height + "\"" + gt +
+lt + "param name=\"CellWidth\" value=\"" + cellWidth + "\" /" + gt +
+lt + "param name=\"CellMargin\" value=\"" + cellMargin + "\" /" + gt +
+lt + "param name=\"Debug\" value=\"" + debugLevel + "\" " + gt +
+lt + "p" + gt +
+"Java applet not supported" +
+lt + "/p" + gt +
+lt + "/applet" + gt;
+
+}
+</script>
+</head>
+<body>
+<h1 style="align:center;">DMFA Concentration</h1>
+
+<script type="text/javascript">
+if (debug)
+{
+document.write("<p>" + size + "</p>");
+document.write("<p>" + cellWidth + "</p>");
+document.write("<p>" + cellMargin + "</p>");
+document.write("<p>" + width + "</p>");
+document.write("<p>" + height + "</p>");
+document.write("<p>" + constructApplet("print") + "</p>");
+}
+</script>
+<div><div style="float:left;clear:top;">
+
+<script type="text/javascript">
+document.writeln(constructApplet());
+</script>
+</div>
+<div style="float:left;clear:top;">
+<p><b>Sizes:</b><br /><a href="?size=small">Small</a><br />
+   <a href="?size=medium">Medium</a><br />
+   <a href="?size=large">Large</a></p>
+</div>
+<div style="float:left;clear:top;">
+<iframe src="startup.html" name="text" height="500">iframe not supported</iframe>
+</div></div>
+</body>
+</html>

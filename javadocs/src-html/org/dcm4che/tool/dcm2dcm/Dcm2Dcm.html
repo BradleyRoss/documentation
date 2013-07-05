@@ -303,7 +303,7 @@
 <span class="sourceLineNo">295</span>        Attributes dataset;<a name="line.295"></a>
 <span class="sourceLineNo">296</span>        DicomInputStream dis = new DicomInputStream(src);<a name="line.296"></a>
 <span class="sourceLineNo">297</span>        try {<a name="line.297"></a>
-<span class="sourceLineNo">298</span>            dis.setIncludeBulkData(IncludeBulkData.LOCATOR);<a name="line.298"></a>
+<span class="sourceLineNo">298</span>            dis.setIncludeBulkData(IncludeBulkData.URI);<a name="line.298"></a>
 <span class="sourceLineNo">299</span>            fmi = dis.readFileMetaInformation();<a name="line.299"></a>
 <span class="sourceLineNo">300</span>            dataset = dis.readDataset(-1, -1);<a name="line.300"></a>
 <span class="sourceLineNo">301</span>        } finally {<a name="line.301"></a>

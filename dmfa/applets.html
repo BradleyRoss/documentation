@@ -1,0 +1,353 @@
+<html>
+<head>
+<!--
+*** The three parameters that can be used for this page are 
+*** oldButtons, scrollbar, and colors.  These parameters can
+*** have the value true or false.
+***
+*** oldButtons (default is true)  If true, the oldJavaButtons
+***      applet is displayed.
+*** scrollbar (default is false)  If true, the scrollbarSample
+***      applet is displayed.
+*** colors (default is false)     If true, the colorsSample
+***      applet is displayed.
+-->
+<script type="text/javascript">
+var oldButtons = true;
+var colors = false;
+var scrollbar = false;
+var showApplet = true;
+var showEmbed = false;
+var showObjectStd = false;
+function showClass(version, packageName)
+   {
+   var site;
+   if (version.toLowerCase() == "java")
+      { site = "http://java.sun.com/j2se/1.5.0/docs/api/"; }
+   else if (version.toLowerCase() == "servlet")
+      { site = "http://tomcat.apache.org/tomcat-5.5-doc/servletapi"; }
+   else if (version.toLowerCase() == "local")
+      { site = "javadoc/"; }
+   else if (version.toLowerCase() == "applet")
+      { site = "applets/"; }
+   else if (version.toLowerCase() == "applets")
+      { site = "applets/"; }
+   else if (version.toLowerCase() == "oldapplet")
+      { site = "oldApplets/"; }
+   else if (version.toLowerCase() == "oldapplets")
+      { site = "oldApplets/"; }
+   else
+      {
+      alert("Unable to find option in showClass for " + version);
+      site = "unknown";
+      }
+   document.write("<a href=\"" + site + "index.html?");
+   // See showPackage for more information on the RegExp item
+   replacement = new RegExp("\\.", "g");
+   urlName = packageName.replace(replacement, "\/");
+   document.write(urlName + ".html\" target=\"_blank\"><code>");
+   document.write(packageName + "</code></a>");
+   }
+var documentApplet = false;
+function processLine(line)
+   {
+   ltReplace = new RegExp("<", "g");
+   gtReplace = new RegExp(">", "g");
+   if (documentApplet)
+      {
+      document.write(line.replace(ltReplace, "\&lt;")
+              .replace(gtReplace, "\&gt;"));
+      document.writeln("<br>\n");
+      }
+   else
+      {
+      document.writeln(line);
+      }
+   }
+function writeApplet(uri, width, height)
+   {
+   if (documentApplet)
+      { document.writeln("<p>"); }
+   processLine ("<applet code=\"" + uri + ".class\"");
+   processLine (" archive=\"combined.jar\" ");
+   processLine ("width=" + width  + " height=" + height +
+                " ></applet>");
+   if ( !documentApplet)
+      { document.writeln("</p>"); }
+   }
+function writeEmbed(uri, width, height)
+   {
+   if (documentApplet)
+      { document.writeln("<p>"); }
+   processLine("<EMBED type=\"application/x-java-applet\" " +
+               "width=" + width + " height=" + height );
+   processLine("code=\"" + uri + ".class\"");
+   processLine(" archive=\"combined.jar\" " );
+   processLine("pluginspace=\"http://java.sun.com" +
+               "/products/plugin/index.html#download\">");
+   processLine("<NOEMBED><p><code>EMBED</code> tag not supported</p>" +
+               "</NOEMBED>");
+   processLine("</EMBED>");
+   if (documentApplet)
+      { document.writeln("</p>"); }
+   }
+function writeObjectStd(uri, width, height)
+   {
+   if (documentApplet)
+      { document.writeln("<p>"); }
+   processLine ("<OBJECT classid=\"java:" + uri + ".class\"");
+   processLine ("type=\"application/x-java-applet\" " + 
+                " archive=\"combined.jar\" " +
+                "width=" + width + " height=" + height + " >");
+   processLine ("<p><code>object</code> tag not supported</p>");
+   processLine ("</OBJECT>");
+   if (documentApplet)
+      { document.writeln("</p>"); }
+   }
+function test()
+   { 
+   document.writeln("<p>Test</p>");
+   }
+function checkBoolean(string)
+   { 
+   if (string.toLowerCase() == "true")
+      { return true; }
+   else
+      { return false; }
+   }
+function browserData()
+   {
+   document.writeln("<table border cellpadding=5>");
+   document.writeln("<tr><td colspan=\"2\" align=\"center\"><b>" +
+      "Browser Information" +
+      "</b></td></tr>");
+   document.writeln("<tr><td>navigator.userAgent</td><td>" +
+         navigator.userAgent + "</td></tr>");
+   document.writeln("<tr><td>navigator.platform</td><td>" +
+         navigator.platform + "</td></tr>");
+   document.writeln("<tr><td>document.URL</td><td>" +
+         document.URL + "</td></tr>");
+   }
+/*
+** Read the arguments passed in the URL and set the various
+** boolean flags accordingly.
+*/
+var pairs = location.search.substring(1).split('&');
+for (var argCounter = 0; argCounter < pairs.length; argCounter++)
+   {
+   var pos = pairs[argCounter].indexOf("=");
+   if (pos < 0) { continue; }
+   if (pairs[argCounter].substring(0,pos) == "oldButtons")
+      { oldButtons = checkBoolean(pairs[argCounter].substring(pos+1)); }
+   else if (pairs[argCounter].substring(0,pos) == "colors")
+      { colors = checkBoolean(pairs[argCounter].substring(pos+1)); }
+   else if (pairs[argCounter].substring(0,pos) == "scrollbar")
+      { scrollbar = checkBoolean(pairs[argCounter].substring(pos+1)); }
+   else if (pairs[argCounter].substring(0,pos) == "showApplet")
+      { showApplet = checkBoolean(pairs[argCounter].substring(pos+1)); }
+   else if (pairs[argCounter].substring(0,pos) == "showEmbed")
+      { showEmbed = checkBoolean(pairs[argCounter].substring(pos+1)); }
+   else if (pairs[argCounter].substring(0,pos) == "showObjectStd")
+      { showObjectStd = checkBoolean(pairs[argCounter].substring(pos+1)); }
+   }
+</script>
+<script type="text/javascript">
+/*
+** Reload the page according to which checkboxes are
+** selected.
+*/
+function processChoices()
+   {
+   var optionsString = "?";
+   if (!(form1.oldSelect.checked))
+      { optionsString = optionsString.concat("oldButtons=false&"); }
+   if (form1.scrollbarSelect.checked)
+      { optionsString = optionsString.concat("scrollbar=true&"); }
+   if (form1.colorsSelect.checked)
+      { optionsString = optionsString.concat("colors=true&"); }
+   if (!(form1.appletItem.checked))
+      { optionsString = optionsString.concat("showApplet=false&"); }
+   if (form1.embedItem.checked)
+      { optionsString = optionsString.concat("showEmbed=true&"); }
+   if  (form1.objectItemStd.checked)
+      { optionsString = optionsString.concat("showObjectStd=true&"); }
+   location.href =  optionsString;
+   }
+</script>
+</head>
+<!-- I am having a problem with the scripts not being executd properly
+-->
+<body>
+<h1 style="align:center">Applet Demonstration</h1>
+<p>This page serves as a demonstration of several concepts concerning
+   applets and their use in web pages.</p>
+<ol>
+<li><p>It shows three different applets (oldJavaButtons, colorsSample,
+       and scrollbarSample) and how they can be called using the
+       <code>applet</code> and <code>embed</code> tags.</p></li>
+<li><p>It shows how javascript can be used to read parameters when
+       processing a web page.</p></li>
+<li><p>It shows how for loops and other programming constructs can
+       be used in Javascript to build up a web page.</p></li>
+<li><p>It shows samples of both the <code>applet</code> and
+       <code>embed</code> tags.</p></li>
+</ol>
+<p>If you don't have Java loaded on your system, the plug-ins can be
+   obtained at
+   <a href="http://java.sun.com/products/plugin/index.html#download">
+   http://java.sun.com/products/plugin/index.html#download</a>.</p>
+<p>As I mentioned above, this web page will respond to arguments.  Try the
+   following links to see how this works.</p>
+<ul>
+<li><p><a href="?oldButtons=true&scrollbar=true&colors=true">Click here
+   to see all three applets.</a>  The default is to show only the
+   oldJavaButtons applet.</p></li>
+<li><p><a href="?oldButtons=true&scrollbar=true&colors=true&showEmbed=true">
+   Click here to see all three applets using both the <code>APPLET</code>
+   and <code>EMBED</code> tags.</a>  Although the <code>APPLET</code>
+   tag (deprecated) and <code>EMBED</code> (unofficial extension)
+   may not supported in future browsers, they do appear to work in most
+   of the current systems.</p></li>
+</ul>
+<!-- 
+*** This is the HTML code for creating the form to show which
+*** items are to be displayed.
+-->
+<p>The following form provides another method to select which
+   applets and methods for displaying the applets are to be shown.</p>
+<form name="form1" >
+<table border>
+<tr><td valign="top">
+<p>&nbsp;Choose applets to be displayed.&nbsp;</p>
+<hr>
+<p><input type="checkbox" 
+          name="oldSelect">oldJavaButtons</p>
+<p><input type="checkbox" name="scrollbarSelect">ScrollbarSample</p>
+<p><input type="checkbox" name="colorsSelect">ColorsSample</p>
+</td>
+<td valign="top">
+<p>&nbsp;Choose methods for displaying applets.&nbsp;</p>
+<hr>
+<p><input type="checkbox" name="appletItem">Applet</p>
+<p><input type="checkbox" name="embedItem">Embed</p>
+<p><input type="checkbox" name="objectItemStd">Object (XHTML)</p>
+</td></tr>
+<tr><td align="center" colspan=2><p>
+    <input type="button" name="test2" onClick="processChoices();"
+      value="Modify Choices" ></p>
+    <p>Clicking this button will change the page to use the
+       selected options.</p></td></tr>
+</table>
+</form>
+<!-- This one appears -->
+<script type="text/javascript">
+document.writeln("<p>Test</p>");
+</script>
+<script type="text/javascript">
+/*
+** When creating the page make sure that the checkboxes
+** agree with the selected options.  This section adjusts
+** the boxes in the form so that they agree with the parameters
+** for the page.
+*/
+form1.oldSelect.checked = oldButtons; 
+form1.scrollbarSelect.checked = scrollbar; 
+form1.colorsSelect.checked = colors; 
+form1.appletItem.checked = showApplet; 
+form1.embedItem.checked = showEmbed;
+form1.objectItemStd.checked = showObjectStd;
+</script>
+<script type="text/javascript">
+/*
+** Go through the list of Java classes for the applets.
+** Only show those applets for which the flags are set.
+*/
+for (var classCounter = 0; classCounter < 3; classCounter++)
+   {
+   var className;
+   var appletHeight;
+   var javadoc;
+   document.writeln("<hr>");
+   if (classCounter == 0) 
+      {
+      if (oldButtons)
+         {
+         className = "local.OldJavaButtons";
+         appletHeight = 150;
+         javadoc = "oldApplets";
+         }
+      else
+         { 
+         document.writeln("<p>Skipping oldJavaButtons</p>");
+         continue; 
+         }
+      }
+   if (classCounter == 1)
+      {
+      if (colors)
+         {
+         className = "local.ColorsSample";
+         appletHeight = 300;
+         javadoc = "Applets";
+         }
+      else
+         {
+         document.writeln("<p>Skipping colorsSample</p>");
+         continue; 
+         }
+      }
+   if (classCounter == 2)
+      {
+      if (scrollbar)
+         {
+         className = "local.ScrollbarSample";
+         appletHeight = 300;
+         javadoc = "Applets";
+         }
+      else 
+         { 
+         document.writeln("<p>Skipping scrollbarSample");
+         continue; 
+         }
+      }
+   /*
+   ** Only display the example using the applet tag
+   ** if the correct options are set.
+   */
+   if (showApplet)
+      {
+      document.writeln("<p>See ");
+      showClass(javadoc, className);
+      document.writeln(" for information about the applet</p>");
+      documentApplet = true;
+      writeApplet(className, 500, appletHeight);
+      documentApplet = false;
+      writeApplet(className, 500, appletHeight);
+      documentApplet = false;
+      }
+   /*
+   ** Only display the example using the embed tag if
+   ** the correct options are set.
+   */
+   if (showEmbed)
+      {
+      documentApplet = true;
+      writeEmbed(className, 500, appletHeight);
+      documentApplet = false;
+      writeEmbed(className, 500, appletHeight);
+      documentApplet = false;
+      }
+   if (showObjectStd)
+      {
+      documentApplet = true;
+      writeObjectStd(className, 500, appletHeight);
+      documentApplet = false;
+      writeObjectStd(className, 500, appletHeight);
+      documentApplet = false;
+      }
+   } // End of classCounter for loop
+document.writeln("<hr>");
+browserData();
+</script>
+</body>
+</html>

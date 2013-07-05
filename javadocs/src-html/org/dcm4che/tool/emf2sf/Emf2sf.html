@@ -159,7 +159,7 @@
 <span class="sourceLineNo">151</span>        Attributes src;<a name="line.151"></a>
 <span class="sourceLineNo">152</span>        DicomInputStream dis = new DicomInputStream(file);<a name="line.152"></a>
 <span class="sourceLineNo">153</span>        try {<a name="line.153"></a>
-<span class="sourceLineNo">154</span>            dis.setIncludeBulkData(IncludeBulkData.LOCATOR);<a name="line.154"></a>
+<span class="sourceLineNo">154</span>            dis.setIncludeBulkData(IncludeBulkData.URI);<a name="line.154"></a>
 <span class="sourceLineNo">155</span>            src = dis.readDataset(-1, -1);<a name="line.155"></a>
 <span class="sourceLineNo">156</span>        } finally {<a name="line.156"></a>
 <span class="sourceLineNo">157</span>            SafeClose.close(dis);<a name="line.157"></a>

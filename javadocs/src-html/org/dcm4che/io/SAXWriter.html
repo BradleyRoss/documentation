@@ -49,7 +49,7 @@
 <span class="sourceLineNo">041</span>import java.io.IOException;<a name="line.41"></a>
 <span class="sourceLineNo">042</span><a name="line.42"></a>
 <span class="sourceLineNo">043</span>import org.dcm4che.data.Attributes;<a name="line.43"></a>
-<span class="sourceLineNo">044</span>import org.dcm4che.data.BulkDataLocator;<a name="line.44"></a>
+<span class="sourceLineNo">044</span>import org.dcm4che.data.BulkData;<a name="line.44"></a>
 <span class="sourceLineNo">045</span>import org.dcm4che.data.ElementDictionary;<a name="line.45"></a>
 <span class="sourceLineNo">046</span>import org.dcm4che.data.Fragments;<a name="line.46"></a>
 <span class="sourceLineNo">047</span>import org.dcm4che.data.PersonName;<a name="line.47"></a>
@@ -197,8 +197,8 @@
 <span class="sourceLineNo">189</span>                if (frag instanceof Value &amp;&amp; ((Value) frag).isEmpty())<a name="line.189"></a>
 <span class="sourceLineNo">190</span>                    continue;<a name="line.190"></a>
 <span class="sourceLineNo">191</span>                startElement("DataFragment", "number", number);<a name="line.191"></a>
-<span class="sourceLineNo">192</span>                if (frag instanceof BulkDataLocator)<a name="line.192"></a>
-<span class="sourceLineNo">193</span>                    writeBulkDataLocator((BulkDataLocator) frag);<a name="line.193"></a>
+<span class="sourceLineNo">192</span>                if (frag instanceof BulkData)<a name="line.192"></a>
+<span class="sourceLineNo">193</span>                    writeBulkData((BulkData) frag);<a name="line.193"></a>
 <span class="sourceLineNo">194</span>                else {<a name="line.194"></a>
 <span class="sourceLineNo">195</span>                    byte[] b = (byte[]) frag;<a name="line.195"></a>
 <span class="sourceLineNo">196</span>                    if (bigEndian)<a name="line.196"></a>
@@ -207,8 +207,8 @@
 <span class="sourceLineNo">199</span>                }<a name="line.199"></a>
 <span class="sourceLineNo">200</span>                endElement("DataFragment");<a name="line.200"></a>
 <span class="sourceLineNo">201</span>            }<a name="line.201"></a>
-<span class="sourceLineNo">202</span>        } else if (value instanceof BulkDataLocator) {<a name="line.202"></a>
-<span class="sourceLineNo">203</span>            writeBulkDataLocator((BulkDataLocator) value);<a name="line.203"></a>
+<span class="sourceLineNo">202</span>        } else if (value instanceof BulkData) {<a name="line.202"></a>
+<span class="sourceLineNo">203</span>            writeBulkData((BulkData) value);<a name="line.203"></a>
 <span class="sourceLineNo">204</span>        }<a name="line.204"></a>
 <span class="sourceLineNo">205</span>    }<a name="line.205"></a>
 <span class="sourceLineNo">206</span><a name="line.206"></a>
@@ -233,9 +233,9 @@
 <span class="sourceLineNo">225</span>            if (vr == VR.SQ || len == -1) {<a name="line.225"></a>
 <span class="sourceLineNo">226</span>                dis.readValue(dis, attrs);<a name="line.226"></a>
 <span class="sourceLineNo">227</span>            } else if (len &gt; 0) {<a name="line.227"></a>
-<span class="sourceLineNo">228</span>                if (dis.getIncludeBulkData() ==  IncludeBulkData.LOCATOR<a name="line.228"></a>
+<span class="sourceLineNo">228</span>                if (dis.getIncludeBulkData() ==  IncludeBulkData.URI<a name="line.228"></a>
 <span class="sourceLineNo">229</span>                        &amp;&amp; dis.isBulkData(attrs)) {<a name="line.229"></a>
-<span class="sourceLineNo">230</span>                    writeBulkDataLocator(dis.createBulkDataLocator());<a name="line.230"></a>
+<span class="sourceLineNo">230</span>                    writeBulkData(dis.createBulkData());<a name="line.230"></a>
 <span class="sourceLineNo">231</span>                } else {<a name="line.231"></a>
 <span class="sourceLineNo">232</span>                    byte[] b = dis.readValue();<a name="line.232"></a>
 <span class="sourceLineNo">233</span>                    if (tag == Tag.TransferSyntaxUID<a name="line.233"></a>
@@ -289,9 +289,9 @@
 <span class="sourceLineNo">281</span>            frags.add(ByteUtils.EMPTY_BYTES); // increment size<a name="line.281"></a>
 <span class="sourceLineNo">282</span>            if (len &gt; 0) {<a name="line.282"></a>
 <span class="sourceLineNo">283</span>                startElement("DataFragment", "number", frags.size());<a name="line.283"></a>
-<span class="sourceLineNo">284</span>                if (dis.getIncludeBulkData() == IncludeBulkData.LOCATOR<a name="line.284"></a>
+<span class="sourceLineNo">284</span>                if (dis.getIncludeBulkData() == IncludeBulkData.URI<a name="line.284"></a>
 <span class="sourceLineNo">285</span>                        &amp;&amp; dis.isBulkDataFragment(frags)) {<a name="line.285"></a>
-<span class="sourceLineNo">286</span>                    writeBulkDataLocator(dis.createBulkDataLocator());<a name="line.286"></a>
+<span class="sourceLineNo">286</span>                    writeBulkData(dis.createBulkData());<a name="line.286"></a>
 <span class="sourceLineNo">287</span>                } else {<a name="line.287"></a>
 <span class="sourceLineNo">288</span>                    byte[] b = dis.readValue();<a name="line.288"></a>
 <span class="sourceLineNo">289</span>                    if (dis.bigEndian())<a name="line.289"></a>
@@ -322,58 +322,54 @@
 <span class="sourceLineNo">314</span>        endElement("Value");<a name="line.314"></a>
 <span class="sourceLineNo">315</span>    }<a name="line.315"></a>
 <span class="sourceLineNo">316</span><a name="line.316"></a>
-<span class="sourceLineNo">317</span>    private void writeBulkDataLocator(BulkDataLocator bdl)<a name="line.317"></a>
+<span class="sourceLineNo">317</span>    private void writeBulkData(BulkData bulkData)<a name="line.317"></a>
 <span class="sourceLineNo">318</span>            throws SAXException {<a name="line.318"></a>
-<span class="sourceLineNo">319</span>        startElement("BulkDataLocator"); <a name="line.319"></a>
-<span class="sourceLineNo">320</span>        writeElement("Length", Integer.toString(bdl.length));<a name="line.320"></a>
-<span class="sourceLineNo">321</span>        writeElement("Offset", Long.toString(bdl.offset));<a name="line.321"></a>
-<span class="sourceLineNo">322</span>        writeElement("TransferSyntax", bdl.transferSyntax);<a name="line.322"></a>
-<span class="sourceLineNo">323</span>        writeElement("URI", bdl.uri);<a name="line.323"></a>
-<span class="sourceLineNo">324</span>        endElement("BulkDataLocator");<a name="line.324"></a>
-<span class="sourceLineNo">325</span>    }<a name="line.325"></a>
-<span class="sourceLineNo">326</span><a name="line.326"></a>
-<span class="sourceLineNo">327</span>    private void writeElement(String qname, String s) throws SAXException {<a name="line.327"></a>
-<span class="sourceLineNo">328</span>        if (s != null) {<a name="line.328"></a>
-<span class="sourceLineNo">329</span>            startElement(qname); <a name="line.329"></a>
-<span class="sourceLineNo">330</span>            char[] buf = buffer;<a name="line.330"></a>
-<span class="sourceLineNo">331</span>            for (int off = 0, totlen = s.length(); off &lt; totlen;) {<a name="line.331"></a>
-<span class="sourceLineNo">332</span>                int len = Math.min(totlen - off, buf.length);<a name="line.332"></a>
-<span class="sourceLineNo">333</span>                s.getChars(off, off += len, buf, 0);<a name="line.333"></a>
-<span class="sourceLineNo">334</span>                ch.characters(buf, 0, len);<a name="line.334"></a>
-<span class="sourceLineNo">335</span>            }<a name="line.335"></a>
-<span class="sourceLineNo">336</span>            endElement(qname);<a name="line.336"></a>
-<span class="sourceLineNo">337</span>        }<a name="line.337"></a>
-<span class="sourceLineNo">338</span>    }<a name="line.338"></a>
-<span class="sourceLineNo">339</span><a name="line.339"></a>
-<span class="sourceLineNo">340</span>    public void writePersonName(int index, PersonName pn) throws SAXException {<a name="line.340"></a>
-<span class="sourceLineNo">341</span>        if (!pn.isEmpty()) {<a name="line.341"></a>
-<span class="sourceLineNo">342</span>            startElement("PersonName", "number", index + 1);<a name="line.342"></a>
-<span class="sourceLineNo">343</span>            writePNGroup("Alphabetic", pn, PersonName.Group.Alphabetic);<a name="line.343"></a>
-<span class="sourceLineNo">344</span>            writePNGroup("Ideographic", pn, PersonName.Group.Ideographic);<a name="line.344"></a>
-<span class="sourceLineNo">345</span>            writePNGroup("Phonetic", pn, PersonName.Group.Phonetic);<a name="line.345"></a>
-<span class="sourceLineNo">346</span>            endElement("PersonName");<a name="line.346"></a>
-<span class="sourceLineNo">347</span>        }<a name="line.347"></a>
-<span class="sourceLineNo">348</span>    }<a name="line.348"></a>
-<span class="sourceLineNo">349</span><a name="line.349"></a>
-<span class="sourceLineNo">350</span>    private void writePNGroup(String qname, PersonName pn,<a name="line.350"></a>
-<span class="sourceLineNo">351</span>            PersonName.Group group) throws SAXException {<a name="line.351"></a>
-<span class="sourceLineNo">352</span>        if (pn.contains(group)) {<a name="line.352"></a>
-<span class="sourceLineNo">353</span>            startElement(qname); <a name="line.353"></a>
-<span class="sourceLineNo">354</span>            writeElement("FamilyName",<a name="line.354"></a>
-<span class="sourceLineNo">355</span>                    pn.get(group, PersonName.Component.FamilyName));<a name="line.355"></a>
-<span class="sourceLineNo">356</span>            writeElement("GivenName",<a name="line.356"></a>
-<span class="sourceLineNo">357</span>                    pn.get(group, PersonName.Component.GivenName));<a name="line.357"></a>
-<span class="sourceLineNo">358</span>            writeElement("MiddleName",<a name="line.358"></a>
-<span class="sourceLineNo">359</span>                    pn.get(group, PersonName.Component.MiddleName));<a name="line.359"></a>
-<span class="sourceLineNo">360</span>            writeElement("NamePrefix",<a name="line.360"></a>
-<span class="sourceLineNo">361</span>                    pn.get(group, PersonName.Component.NamePrefix));<a name="line.361"></a>
-<span class="sourceLineNo">362</span>            writeElement("NameSuffix",<a name="line.362"></a>
-<span class="sourceLineNo">363</span>                    pn.get(group, PersonName.Component.NameSuffix));<a name="line.363"></a>
-<span class="sourceLineNo">364</span>            endElement(qname);<a name="line.364"></a>
-<span class="sourceLineNo">365</span>        }<a name="line.365"></a>
-<span class="sourceLineNo">366</span>    }<a name="line.366"></a>
-<span class="sourceLineNo">367</span><a name="line.367"></a>
-<span class="sourceLineNo">368</span>}<a name="line.368"></a>
+<span class="sourceLineNo">319</span>        startElement("BulkData", "URI", bulkData.toURI()); <a name="line.319"></a>
+<span class="sourceLineNo">320</span>        endElement("BulkData");<a name="line.320"></a>
+<span class="sourceLineNo">321</span>    }<a name="line.321"></a>
+<span class="sourceLineNo">322</span><a name="line.322"></a>
+<span class="sourceLineNo">323</span>    private void writeElement(String qname, String s) throws SAXException {<a name="line.323"></a>
+<span class="sourceLineNo">324</span>        if (s != null) {<a name="line.324"></a>
+<span class="sourceLineNo">325</span>            startElement(qname); <a name="line.325"></a>
+<span class="sourceLineNo">326</span>            char[] buf = buffer;<a name="line.326"></a>
+<span class="sourceLineNo">327</span>            for (int off = 0, totlen = s.length(); off &lt; totlen;) {<a name="line.327"></a>
+<span class="sourceLineNo">328</span>                int len = Math.min(totlen - off, buf.length);<a name="line.328"></a>
+<span class="sourceLineNo">329</span>                s.getChars(off, off += len, buf, 0);<a name="line.329"></a>
+<span class="sourceLineNo">330</span>                ch.characters(buf, 0, len);<a name="line.330"></a>
+<span class="sourceLineNo">331</span>            }<a name="line.331"></a>
+<span class="sourceLineNo">332</span>            endElement(qname);<a name="line.332"></a>
+<span class="sourceLineNo">333</span>        }<a name="line.333"></a>
+<span class="sourceLineNo">334</span>    }<a name="line.334"></a>
+<span class="sourceLineNo">335</span><a name="line.335"></a>
+<span class="sourceLineNo">336</span>    public void writePersonName(int index, PersonName pn) throws SAXException {<a name="line.336"></a>
+<span class="sourceLineNo">337</span>        if (!pn.isEmpty()) {<a name="line.337"></a>
+<span class="sourceLineNo">338</span>            startElement("PersonName", "number", index + 1);<a name="line.338"></a>
+<span class="sourceLineNo">339</span>            writePNGroup("Alphabetic", pn, PersonName.Group.Alphabetic);<a name="line.339"></a>
+<span class="sourceLineNo">340</span>            writePNGroup("Ideographic", pn, PersonName.Group.Ideographic);<a name="line.340"></a>
+<span class="sourceLineNo">341</span>            writePNGroup("Phonetic", pn, PersonName.Group.Phonetic);<a name="line.341"></a>
+<span class="sourceLineNo">342</span>            endElement("PersonName");<a name="line.342"></a>
+<span class="sourceLineNo">343</span>        }<a name="line.343"></a>
+<span class="sourceLineNo">344</span>    }<a name="line.344"></a>
+<span class="sourceLineNo">345</span><a name="line.345"></a>
+<span class="sourceLineNo">346</span>    private void writePNGroup(String qname, PersonName pn,<a name="line.346"></a>
+<span class="sourceLineNo">347</span>            PersonName.Group group) throws SAXException {<a name="line.347"></a>
+<span class="sourceLineNo">348</span>        if (pn.contains(group)) {<a name="line.348"></a>
+<span class="sourceLineNo">349</span>            startElement(qname); <a name="line.349"></a>
+<span class="sourceLineNo">350</span>            writeElement("FamilyName",<a name="line.350"></a>
+<span class="sourceLineNo">351</span>                    pn.get(group, PersonName.Component.FamilyName));<a name="line.351"></a>
+<span class="sourceLineNo">352</span>            writeElement("GivenName",<a name="line.352"></a>
+<span class="sourceLineNo">353</span>                    pn.get(group, PersonName.Component.GivenName));<a name="line.353"></a>
+<span class="sourceLineNo">354</span>            writeElement("MiddleName",<a name="line.354"></a>
+<span class="sourceLineNo">355</span>                    pn.get(group, PersonName.Component.MiddleName));<a name="line.355"></a>
+<span class="sourceLineNo">356</span>            writeElement("NamePrefix",<a name="line.356"></a>
+<span class="sourceLineNo">357</span>                    pn.get(group, PersonName.Component.NamePrefix));<a name="line.357"></a>
+<span class="sourceLineNo">358</span>            writeElement("NameSuffix",<a name="line.358"></a>
+<span class="sourceLineNo">359</span>                    pn.get(group, PersonName.Component.NameSuffix));<a name="line.359"></a>
+<span class="sourceLineNo">360</span>            endElement(qname);<a name="line.360"></a>
+<span class="sourceLineNo">361</span>        }<a name="line.361"></a>
+<span class="sourceLineNo">362</span>    }<a name="line.362"></a>
+<span class="sourceLineNo">363</span><a name="line.363"></a>
+<span class="sourceLineNo">364</span>}<a name="line.364"></a>
 
 
 
